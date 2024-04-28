@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\test\testcontroller;
 use Illuminate\Support\Facades\Route;
-
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -46,7 +45,16 @@ Route::group(['prefix'=>'admin' , 'middleware' => 'auth'],function(){
         return view('layouts.admin.manageFile');
     })->name('manageFileShow');
 
+    Route::get('/all-users', function () {
+        return view('layouts.admin.allUsers');
+    })->name('allUsers');
+
     Route::get('/test',[testcontroller::class,'index']);
+
+    
+    
+
+
 });
 
 

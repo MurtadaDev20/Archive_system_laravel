@@ -33,10 +33,7 @@ class DepartmentLivewire extends Component
 
    
     public function mount()
-    {
-        
-        
-
+    { 
         $this->managerSelect = RoleUser::with('users', 'role')->get();
     }
    

@@ -24,20 +24,22 @@ class ManageFileLivewire extends Component
         return response()->download($filePath);
     }
 
-    public function viewFile($fileId)
+    public function viewPdf($fileId)
     {
         $file = File::findOrFail($fileId);
         $filePath = storage_path('app/' . $file->file);
-        $this->fileContent = file_get_contents($filePath);
+
+        $this->fileContent = base64_encode(file_get_contents($filePath));
+        // $this->emit('loadPdf', $this->fileContent);
     }
 
+    
     public function render()
     {
-        $url = request()->url(); // Get the current URL
-        $parts = explode('/', $url); // Split the URL into parts
+        $url = request()->url(); 
+        $parts = explode('/', $url); 
         $id = end($parts);
 
-        // Check if $id is a positive integer
         if (ctype_digit($id) && $id > 0) {
             $query = File::query()
                 ->where('folder_id', $id);

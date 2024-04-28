@@ -66,14 +66,14 @@
                                         <td> {{$file->updated_at}}</td>
                                         <td><label class="badge bg-success">Approved</label></td>
                                         <td>
-                                            {{-- <button wire:click="viewFile({{$file->id}})"
-                                                class="btn btn-outline-success btn-sm">View</button> --}}
+                                            {{-- <button wire:click="viewPdf('{{ $file->id }}')"
+                                                class="btn btn-outline-primary btn-sm">View</button> --}}
                                             <button wire:click="downloadFile({{$file->id}})"
                                                 class="btn btn-outline-warning btn-sm">Download</button>
                                         </td>
-                                        @if($fileContent)
+                                        {{-- @if($fileContent)
                                         <div>{{ $fileContent }}</div>
-                                        @endif
+                                        @endif --}}
 
                                     </tr>
                                     @endforeach

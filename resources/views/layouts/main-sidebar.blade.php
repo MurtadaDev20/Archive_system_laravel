@@ -63,11 +63,25 @@
                         </ul>
 
                     </li>
+                    <li>
+                        <a href="javascript:void(0);" data-toggle="collapse" data-target="#Users">
+                            <div class="pull-left"><i class="fa fa-user-circle-o"></i><span
+                                    class="right-nav-text">Users</span></div>
+                            <div class="pull-right"><i class="ti-plus"></i></div>
+                            <div class="clearfix"></div>
+                        </a>
+                        <ul id="Users" class="collapse" data-parent="#sidebarnav">
+                            <li><a href="{{route('allUsers')}}">All Users</a></li>
+                        </ul>
+
+                    </li>
 
 
                 </ul>
             </div>
         </div>
+    </div>
+</div>
 
         <!-- Left Sidebar End-->
 
