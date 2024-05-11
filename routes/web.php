@@ -16,9 +16,11 @@ Route::get('/', function () {
     return redirect('/admin');
 });
 Route::group(['prefix'=>'admin' , 'middleware' => 'auth'],function(){
+
+
     Route::get('/', function () {
-        return view('dashboard');
-    });
+        return view('layouts.dashboard');
+    })->name('dashboard');
 
     
     Route::get('/master', function () {

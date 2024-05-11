@@ -3,8 +3,8 @@
         <nav class="admin-header navbar navbar-default col-lg-12 col-12 p-0 fixed-top d-flex flex-row">
             <!-- logo -->
             <div class="text-left navbar-brand-wrapper">
-                <a class="navbar-brand brand-logo" href="index.html"><img src="assets/images/logo-dark.png" alt=""></a>
-                <a class="navbar-brand brand-logo-mini" href="index.html"><img src="assets/images/logo-icon-dark.png"
+                <a class="navbar-brand brand-logo" href="index.html"><img src="{{asset('assets/images/logo-dark.png')}}" alt=""></a>
+                <a class="navbar-brand brand-logo-mini" href="index.html"><img src="{{asset('assets/images/logo-icon-dark.png')}}"
                         alt=""></a>
             </div>
             <!-- Top bar left -->
@@ -29,7 +29,7 @@
                 <li class="nav-item fullscreen">
                     <a id="btnFullscreen" href="#" class="nav-link"><i class="ti-fullscreen"></i></a>
                 </li>
-                <li class="nav-item dropdown ">
+                {{-- <li class="nav-item dropdown ">
                     <a class="nav-link top-nav" data-toggle="dropdown" href="#" role="button" aria-haspopup="true"
                         aria-expanded="false">
                         <i class="ti-bell"></i>
@@ -52,8 +52,8 @@
                         <a href="#" class="dropdown-item">Order confirmation<small class="float-right text-muted time">2
                                 days</small> </a>
                     </div>
-                </li>
-                <li class="nav-item dropdown ">
+                </li> --}}
+                {{-- <li class="nav-item dropdown ">
                     <a class="nav-link top-nav" data-toggle="dropdown" href="#" role="button" aria-haspopup="true"
                         aria-expanded="true"> <i class=" ti-view-grid"></i> </a>
                     <div class="dropdown-menu dropdown-menu-right dropdown-big">
@@ -78,11 +78,11 @@
                             </a>
                         </div>
                     </div>
-                </li>
+                </li> --}}
                 <li class="nav-item dropdown mr-30">
                     <a class="nav-link nav-pill user-avatar" data-toggle="dropdown" href="#" role="button"
                         aria-haspopup="true" aria-expanded="false">
-                        <img src="assets/images/profile-avatar.jpg" alt="avatar">
+                        <img src="{{asset('assets/images/profile-avatar.jpg')}}" alt="avatar">
                     </a>
                     <div class="dropdown-menu dropdown-menu-right">
                         <div class="dropdown-header">
@@ -94,13 +94,13 @@
                             </div>
                         </div>
                         <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="#"><i class="text-secondary ti-reload"></i>Activity</a>
-                        <a class="dropdown-item" href="#"><i class="text-success ti-email"></i>Messages</a>
+                        {{-- <a class="dropdown-item" href="#"><i class="text-secondary ti-reload"></i>Activity</a>
+                        <a class="dropdown-item" href="#"><i class="text-success ti-email"></i>Messages</a> --}}
                         <a class="dropdown-item" href="#"><i class="text-warning ti-user"></i>Profile</a>
-                        <a class="dropdown-item" href="#"><i class="text-dark ti-layers-alt"></i>Projects <span
-                                class="badge badge-info">6</span> </a>
+                        {{-- <a class="dropdown-item" href="#"><i class="text-dark ti-layers-alt"></i>Projects <span --}}
+                                {{-- class="badge badge-info">6</span> </a> --}}
                         <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="#"><i class="text-info ti-settings"></i>Settings</a>
+                        {{-- <a class="dropdown-item" href="#"><i class="text-info ti-settings"></i>Settings</a> --}}
                         <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                             @csrf
                         </form>

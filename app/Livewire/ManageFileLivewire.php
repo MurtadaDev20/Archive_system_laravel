@@ -76,6 +76,7 @@ class ManageFileLivewire extends Component
 
                 ->orderBy('created_at', 'desc')
                 ->where('folder_id', $folderID)
+                ->where('folder_id', $folderID)
                 ->paginate(10),
         ]);
     }

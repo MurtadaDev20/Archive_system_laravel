@@ -20221,6 +20221,7 @@ ul.list-unstyled li {
   min-width: 320px; }
 
 .content-wrapper {
+  
   padding: 30px;
   overflow: hidden;
   margin-left: 215px;
@@ -20568,6 +20569,7 @@ a.button-toggle-nav {
   margin-left: 44px; }
 
 .content-wrapper {
+  width: 88% ;
   margin-left: 230px;
   background: #fafafa;
   position: relative;

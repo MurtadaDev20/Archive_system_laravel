@@ -56,7 +56,7 @@
                                 <tbody>
                                     @foreach ($files as $file )
 
-
+                                    @if (Auth::user()->manager_id ==$file->folder->user_id || Auth::user()->id == $file->folder->user_id)
                                     <tr>
                                         <td>{{$num++}}</td>
                                         <td>{{$file->file_name}}</td>
@@ -76,6 +76,7 @@
                                         @endif --}}
 
                                     </tr>
+                                    @endif
                                     @endforeach
                                 </tbody>
 

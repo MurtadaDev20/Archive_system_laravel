@@ -6,21 +6,35 @@ use App\Models\RoleUser;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Component;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+
+use Livewire\WithPagination;
 
 class Userslivewire extends Component
 {
+    use WithPagination;
 
     public $fullname;
+    public $fullname_manager;
     public $email;
+    public $email_manager;
     public $password;
+    public $password_manager;
     public $selectManager;
     public $roleSelected;
+    public $searchByName;
+    public $num =1;
     public $showUserMode = false;
+    public $editMode = false;
+    
+    public $editUserId;
 
     public function mount()
     { 
-        
-        
+            
+
+                
     }
 
     public function addUser()
@@ -32,8 +46,10 @@ class Userslivewire extends Component
             'roleSelected' => 'required',
         ]);
 
-        if($this->selectManager > 0){
-            $user = new User();
+        if($this->selectManager > 0)
+        {
+            
+        $user = new User();
         $user->name = $this->fullname;
         $user->email = $this->email;
         $user->manager_id = $this->selectManager;
@@ -52,7 +68,8 @@ class Userslivewire extends Component
         // $this->roleSelect = '';
         toastr()->success('User added successfully!');
         }
-        else{
+        else
+        {
         $user = new User();
         $user->name = $this->fullname;
         $user->email = $this->email;
@@ -75,6 +92,37 @@ class Userslivewire extends Component
         }
     }
 
+    public function addUserByManager()
+    {
+        $this->validate([
+            
+            'fullname_manager' => 'required',
+            'email_manager' => 'required',
+            'password_manager' => 'required|min:6',
+        ]);
+
+       
+            
+        $user = new User();
+        $user->name = $this->fullname_manager;
+        $user->email = $this->email_manager;
+        $user->manager_id = Auth::user()->id;
+        $user->password = Hash::make($this->password_manager);
+        $user->save();
+
+        $role_user = new RoleUser();
+        $role_user->user_id = $user->id;
+        $role_user->role_id = 4;
+        $role_user->save();
+
+        // Clear form fields
+        $this->fullname_manager = '';
+        $this->email_manager = '';
+        $this->roleSelected = '';
+        // $this->roleSelect = '';
+        toastr()->success('User added successfully!');
+    
+}
     public function render()
     {
         if($this->roleSelected == "4")
@@ -89,7 +137,66 @@ class Userslivewire extends Component
         return view('livewire.userslivewire',[
             
             'roles' => $roles,
-            'manager' =>$manager
+            'manager' =>$manager ,
+            'users' => RoleUser::query()
+                ->with('role','users')
+                ->orderBy('created_at', 'desc')
+                ->paginate(10),
         ]);
     }
+
+
+
+
+
+
+
+     ///////////////////////////////////////// Update //////////////////////////////
+
+     public function editUser($userId)
+     {
+         $user = User::find($userId);
+ 
+         $this->editUserId = $userId;
+         $this->fullname = $user->name;
+         $this->email = $user->email;
+         $this->editMode = true;
+         
+         // dd($department->manager_id);
+     }
+
+     public function updateUser()
+    {
+        $this->validate([
+            'fullname' => 'required',
+            'email' => 'required|email|unique:users',
+        ]);
+
+        $user = User::find($this->editUserId);
+        $user->name = $this->fullname;
+        $user->email = $this->email;
+        $user->save();
+
+        $this->editMode = false;
+        $this->fullname = '';
+        $this->email = '';
+    }
+
+
+    public function cancelUpdate()
+    {
+        $this->editMode = false;
+        $this->fullname = '';
+        $this->email = '';
+    }
+
+
+    public function deleteUser($userId)
+{
+    $user = User::find($userId);
+    if ($user) {
+        $user->delete();
+        return redirect()->to(route('allUsers'));
+    }
+}
 }

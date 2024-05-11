@@ -21,19 +21,9 @@ class FolderLivewire extends Component
     public $editFolderId;
     public $role_id;
     public $editMode = false;
-    // public $editFolderId;
-    // public $managerSelect;
+    
 
-
-    public function mount()
-    {
-        
-        
-        // $this->folders =folder::with('user', 'role')->get();
-        
-        // dd($this->managerSelect);
-    }
-
+    
     public function addFolder()
     {
         $this->validate();
