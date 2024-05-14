@@ -192,11 +192,11 @@ class Userslivewire extends Component
 
 
     public function deleteUser($userId)
-{
-    $user = User::find($userId);
-    if ($user) {
-        $user->delete();
-        return redirect()->to(route('allUsers'));
+    {
+        $user = User::find($userId);
+        if ($user) {
+            $user->delete();
+            return redirect()->to(route('allUsers'));
+        }
     }
-}
 }

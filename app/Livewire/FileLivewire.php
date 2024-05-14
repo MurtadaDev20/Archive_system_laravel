@@ -69,6 +69,7 @@ class FileLivewire extends Component
         $this->isUploading = false;
 
         toastr()->success('File uploaded successfully!');
+        return redirect()->to(route('manageFile'));
     }
     public function render()
     {

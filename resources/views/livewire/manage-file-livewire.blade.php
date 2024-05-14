@@ -65,15 +65,42 @@
                                         <td>{{$file->created_at}}</td>
                                         <td> {{$file->updated_at}}</td>
                                         <td><label class="badge bg-success">Approved</label></td>
+
                                         <td>
-                                            {{-- <button wire:click="viewPdf('{{ $file->id }}')"
-                                                class="btn btn-outline-primary btn-sm">View</button> --}}
+                                            @if (Auth::user()->id == $file->user_id)
+                                            <button class="btn btn-outline-danger btn-sm"  title="Delete"
+                                                 data-toggle="modal" data-target="#deleteModal"><i class="fa fa-trash"></i></button>
+
+                                            <!-- Delete Modal -->
+                                            <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog"
+                                              aria-labelledby="deleteModalLabel" aria-hidden="true">
+                                              <div class="modal-dialog" role="document">
+                                                <div class="modal-content">
+                                                  <div class="modal-header">
+                                                    <h5 class="modal-title" id="deleteModalLabel">Delete User</h5>
+                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                      <span aria-hidden="true">&times;</span>
+                                                    </button>
+                                                  </div>
+                                                  <div class="modal-body">
+                                                    Are you sure you want to delete this File?
+                                                  </div>
+                                                  <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                                    <button wire:click="deleteFile({{$file->id}})" type="button"
+                                                      class="btn btn-danger">Delete</button>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                            @endif
+                                            
                                             <button wire:click="downloadFile({{$file->id}})"
-                                                class="btn btn-outline-warning btn-sm">Download</button>
+                                                class="btn btn-outline-warning btn-sm" title="download"><i class="fa fa-download"></i>
+                                            </button>
+                                            
                                         </td>
-                                        {{-- @if($fileContent)
-                                        <div>{{ $fileContent }}</div>
-                                        @endif --}}
+                                        
 
                                     </tr>
                                     @endif

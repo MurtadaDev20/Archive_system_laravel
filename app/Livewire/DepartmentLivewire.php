@@ -102,7 +102,20 @@ class DepartmentLivewire extends Component
         $this->department = '';
     }
 
-
+    public function DepartmentDelete($deptId)
+    {
+        $dept = department::find($deptId);
+        if ($dept) {
+            if ($dept->folders()->count() > 0) {
+                toastr()->error('Cannot delete Department. It contains a Folder.');
+                return redirect()->to(route('departments'));
+                
+                
+            }
+            $dept->delete();
+            return redirect()->to(route('departments'));
+        }
+    }
 
     public function render()
     {

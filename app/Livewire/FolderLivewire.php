@@ -89,6 +89,27 @@ class FolderLivewire extends Component
         $this->folder = '';
     }
 
+    public function deleteFolder($folderId)
+    {
+        $folder = folder::find($folderId);
+
+        if ($folder) {
+            // Check if the folder contains any files
+            if ($folder->files()->count() > 0) {
+                toastr()->error('Cannot delete folder. It contains files.');
+                return redirect()->to(route('folders'));
+                
+                
+            }
+    
+            $folder->delete();
+            toastr()->success('Delete successfully!');
+            return redirect()->to(route('folders'));
+        }
+
+        
+    }
+
     public function render()
     {
 

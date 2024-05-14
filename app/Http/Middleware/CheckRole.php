@@ -19,7 +19,7 @@ class CheckRole
             foreach ($user->roles as $role) {
                 if ($role->name == 'Admin') {
                     return $next($request);
-                } elseif ($role->name == 'Manager') {
+                } else{
                     return redirect(RouteServiceProvider::ALLUSERS);
                 }
             }

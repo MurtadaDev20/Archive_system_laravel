@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\file;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\Storage;
 
 class ManageFileLivewire extends Component
 {
@@ -60,6 +61,16 @@ class ManageFileLivewire extends Component
         return view('livewire.manage-file-livewire', [
             'files' => $files,
         ]);
+    }
+
+    public function deleteFile($fileId)
+    {
+        $file = file::find($fileId);
+        if ($file) {
+            Storage::delete($file->file);
+            $file->delete();
+            return redirect()->to(route('manageFile'));
+        }
     }
     public function renderId($folderID)
     {
