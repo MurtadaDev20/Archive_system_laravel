@@ -15,12 +15,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect('/admin');
 });
-Route::group(['prefix'=>'admin' , 'middleware' => 'auth'],function(){
+Route::group(['prefix'=>'admin' , 'middleware' => ['auth']],function(){
 
 
     Route::get('/', function () {
         return view('layouts.dashboard');
-    })->name('dashboard');
+    })->name('dashboard')->middleware('role');
 
     
     Route::get('/master', function () {
