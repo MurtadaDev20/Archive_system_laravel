@@ -44,7 +44,7 @@
   <div class="row">
     @foreach($departments as $department)
     {{-- @if (Auth::User()->id == $department->manager_id) --}}
-    <div class="col-sm-6 col-lg-6 col-xl-2 mb-30">
+    <div class="col-sm-6 col-lg-6 col-xl-3 mb-30">
       <div class="card card-statistics h-100">
         <div class="card-body">
           {{-- <a href="#" class="text-dark float-end" data-bs-toggle="tooltip" data-bs-placement="left" title=""

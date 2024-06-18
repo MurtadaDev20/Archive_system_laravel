@@ -20569,7 +20569,7 @@ a.button-toggle-nav {
   margin-left: 44px; }
 
 .content-wrapper {
-  width: 88% ;
+  width: auto;
   margin-left: 230px;
   background: #fafafa;
   position: relative;
