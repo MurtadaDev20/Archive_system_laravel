@@ -5,7 +5,7 @@
             <div class="card-body">
               <div class="card-body">
                 <h5 class="card-title">Add New File</h5>
-                <form>
+                <form wire:submit.prevent="save">
 
                   <div class="mb-3">
                     <label class="form-label" for="exampleInputEmail1">File Name</label>
@@ -17,7 +17,7 @@
                   <div class="mb-3">
                     <label class="form-label" for="exampleInputEmail1">Folder Name</label>
                     <select wire:model="selectFolder" class="form-control p-2" id="inlineFormSelectPref">
-                      <option >Choose...</option>
+                      <option value="" selected>Choose...</option>
                       @foreach ($folderName as $folder)
                       @if (Auth::user()->id == $folder->user_id ||Auth::user()->manager_id == $folder->user_id)
                       <option value="{{$folder->id}}" >{{$folder->folder_name}}</option>
@@ -25,7 +25,7 @@
                       @endforeach
                       
                     </select>
-                    @error('folderName') <span class="text-danger">{{ $message }}</span> @enderror
+                    @error('selectFolder') <span class="text-danger">{{ $message }}</span> @enderror
                   </div>
 
                   <div class="mb-3">
@@ -36,23 +36,12 @@
                   </div>
 
                   <div wire:loading wire:target="attached">
-                    Uploading... {{ $uploadProgress }}%
+                    Uploading... 
                     </div>
-
-                    <div class="form-control" wire:loading wire:target="attached">
-                        &nbsp;
-                        <div class="progress mt-2">
-                            <div class="progress-bar" role="progressbar" :style="width: {{ $uploadProgress }}%"
-                                aria-valuenow="{{ $uploadProgress }}" aria-valuemin="0" aria-valuemax="100">
-                                {{ $uploadProgress }}%
-                            </div>
-                        </div>
-                    </div>
-                  
-
-                  
-                  
-                  <button wire:click.prevent="save" class="btn btn-primary">Add</button>
+                  <div>
+                    <button type="submit" wire:loading.class='btn btn-danger'  wire:loading.attr='disabled' class="btn btn-primary">Add</button>
+                  </div>
+                 
                  
                 </form>
               </div>

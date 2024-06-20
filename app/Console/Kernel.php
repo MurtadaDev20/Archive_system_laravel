@@ -13,6 +13,8 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('server-monitor:run-checks')->everyMinute();
+        $schedule->command('livewire:cleanup-tmp')->everyFiveMinutes();
+
     }
 
     /**

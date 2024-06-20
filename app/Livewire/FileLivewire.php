@@ -26,27 +26,30 @@ class FileLivewire extends Component
 
     public function mount()
     {
-
-        $this->folderName = folder::get();
+        
+        $this->folderName = folder::all();
         
     }
    
     public function save()
     {
+        $user = Auth::user();
+        sleep(1);
         $this->validate([
             'fileName' => 'required',
-            'folderName' => 'required',
+            'selectFolder' => 'required|exists:folders,id',
             'attached' => 'required|max:30240', // Limit file size to 10MB (10240KB)
         ]);
 
 
 
         $filename = Str::uuid() . '.' . $this->attached->extension();
-        $path = $this->attached->storeAs('uploads/public', $filename);
+        $folder = folder::find($this->selectFolder);
+        $folderNameWithUser = $folder->folder_name . '_' . $user->name;
+        $path = $this->attached->storeAs($folderNameWithUser, $filename);
 
 
-        $department = folder::where('id',$this->selectFolder)->first();
-        // dd($department->dep_id);
+        $department = folder::find($this->selectFolder);
         $user = Auth::user();
         $roleUser = RoleUser::where('user_id', $user->id)->first();
         
@@ -73,9 +76,7 @@ class FileLivewire extends Component
     }
     public function render()
     {
-        // $folder = folder::get();
         
-        // dd($department->dep_id);
         return view('livewire.file-livewire');
     }
 }

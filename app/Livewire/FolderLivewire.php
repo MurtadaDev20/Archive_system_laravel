@@ -8,12 +8,13 @@ use App\Models\RoleUser;
 use Livewire\Component;
 use Livewire\Attributes\Rule;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Livewire\WithPagination;
 
 class FolderLivewire extends Component
 {
     use WithPagination;
-    #[Rule('required|unique:folders,folder_name')]
+    #[Rule('required')]
     public $folder;
     public $folderse;
     public $department;
@@ -41,6 +42,9 @@ class FolderLivewire extends Component
                     'user_id' => $user->id,
                     'role_id' => $roleUser->role_id,
                 ]);
+                // Create a folder in the storage directory with the name concatenated with the user's name
+                $folderNameWithUser = $this->folder . '_' . $user->name;
+                Storage::disk('local')->makeDirectory($folderNameWithUser);
 
                 toastr()->success('Data has been saved successfully!');
 

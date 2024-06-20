@@ -3,6 +3,8 @@
 namespace App\Livewire;
 
 use App\Models\file;
+use App\Models\folder;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Storage;
@@ -34,35 +36,6 @@ class ManageFileLivewire extends Component
         // $this->emit('loadPdf', $this->fileContent);
     }
 
-    
-    public function render()
-    {
-        $url = request()->url(); 
-        $parts = explode('/', $url); 
-        $id = end($parts);
-
-        if (ctype_digit($id) && $id > 0) {
-            $query = File::query()
-                ->where('folder_id', $id);
-        } else {
-            $query = File::query();
-        }
-
-        $files = $query
-            ->when($this->from, fn ($query, $from) => $query->where('created_at', '>=', $from))
-            ->when($this->to, fn ($query, $to) => $query->where('created_at', '<=', $to))
-            ->with('folder', 'user')
-            ->when($this->searchByName, function ($query, $name) {
-                $query->where('file_name', 'like', "%$name%");
-            })
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
-
-        return view('livewire.manage-file-livewire', [
-            'files' => $files,
-        ]);
-    }
-
     public function deleteFile($fileId)
     {
         $file = file::find($fileId);
@@ -72,23 +45,42 @@ class ManageFileLivewire extends Component
             return redirect()->to(route('manageFile'));
         }
     }
-    public function renderId($folderID)
+
+    public function render()
     {
+        //used to get id folder
+        $url = request()->url(); 
+        $parts = explode('/', $url); 
+        $id = end($parts);
 
+        // used to filter between file filter by using dep_id becuse have same dep_id
+        $user = Auth::user();
+        if (ctype_digit($id) && $id > 0) 
+        {
+            $files = file::where('folder_id',$id)->orderByDesc('created_at');
+        } 
+        else 
+            {
+                $folder = folder::where('user_id', $user->manager_id)->orWhere('user_id', $user->id)->first();
+                if($folder)
+                {
+                    $files = file::where('dep_id',$folder->dep_id)->orderByDesc('created_at');
+                }
+                
+            }
 
-        return view('livewire.manage-file-livewire', [
-            'files' => file::query()
-                ->when($this->from, fn ($query, $from) => $query->where('created_at', '>=', $from))
-                ->when($this->to, fn ($query, $to) => $query->where('created_at', '<=', $to))
-                ->with('folder', 'user')
-                ->when($this->searchByName, function ($query, $name) {
-                    $query->where('file_name', 'like', "%$name%");
-                })
-
-                ->orderBy('created_at', 'desc')
-                ->where('folder_id', $folderID)
-                ->where('folder_id', $folderID)
-                ->paginate(10),
-        ]);
+        // search by using name or created at 
+        if ($this->from) $files = $files->where('created_at', '>=', $this->from);
+        if ($this->to) $files = $files->where('created_at', '<=', $this->to);
+        if ($this->searchByName) {
+            $files = $files->where('file_name', 'like', "%{$this->searchByName}%")
+                ->orWhereHas('folder', function ($query) {$query->where('folder_name', 'like', "%{$this->searchByName}%");})
+                ->orWhereHas('user', function ($query) {$query->where('name', 'like', "%{$this->searchByName}%");});
+            }
+        $files = $files->paginate(20);
+        return view('livewire.manage-file-livewire', compact('files'));
     }
+
+    
+
 }
