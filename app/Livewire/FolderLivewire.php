@@ -43,8 +43,9 @@ class FolderLivewire extends Component
                     'role_id' => $roleUser->role_id,
                 ]);
                 // Create a folder in the storage directory with the name concatenated with the user's name
+                
                 $folderNameWithUser = $this->folder . '_' . $user->name;
-                Storage::disk('local')->makeDirectory($folderNameWithUser);
+                Storage::disk('public')->makeDirectory($folderNameWithUser);
 
                 toastr()->success('Data has been saved successfully!');
 

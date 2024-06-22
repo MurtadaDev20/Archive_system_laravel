@@ -46,16 +46,18 @@ class FileLivewire extends Component
         $filename = Str::uuid() . '.' . $this->attached->extension();
         $folder = folder::find($this->selectFolder);
         $folderNameWithUser = $folder->folder_name . '_' . $user->name;
-        $path = $this->attached->storeAs($folderNameWithUser, $filename);
+        $path = $this->attached->storeAs($folderNameWithUser, $filename ,'public');
 
 
         $department = folder::find($this->selectFolder);
         $user = Auth::user();
         $roleUser = RoleUser::where('user_id', $user->id)->first();
         
-
+        // create code per file
+        $code = "ARC" . date('YmdHis') . "HIVE";
         
         file::create([
+            'code' => $code,
             'file_name' => $this->fileName,
             'folder_id'=>$this->selectFolder ,
             'user_id'=>$user->id ,

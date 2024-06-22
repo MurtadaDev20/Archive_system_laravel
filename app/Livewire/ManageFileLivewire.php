@@ -40,7 +40,11 @@ class ManageFileLivewire extends Component
     {
         $file = file::find($fileId);
         if ($file) {
-            Storage::delete($file->file);
+        // Construct the path relative to 'storage/app'
+        $filePath = 'public/' . $file->file;
+
+        // Delete the file from storage
+        Storage::delete($filePath);
             $file->delete();
             return redirect()->to(route('manageFile'));
         }
@@ -74,6 +78,7 @@ class ManageFileLivewire extends Component
         if ($this->to) $files = $files->where('created_at', '<=', $this->to);
         if ($this->searchByName) {
             $files = $files->where('file_name', 'like', "%{$this->searchByName}%")
+                ->orwhere('code', 'like', "%{$this->searchByName}%")
                 ->orWhereHas('folder', function ($query) {$query->where('folder_name', 'like', "%{$this->searchByName}%");})
                 ->orWhereHas('user', function ($query) {$query->where('name', 'like', "%{$this->searchByName}%");});
             }

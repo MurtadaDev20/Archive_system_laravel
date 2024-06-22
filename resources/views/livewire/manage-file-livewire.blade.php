@@ -59,7 +59,12 @@
                                     @if (Auth::user()->manager_id ==$file->folder->user_id || Auth::user()->id == $file->folder->user_id)
                                     <tr>
                                         <td>{{$num++}}</td>
-                                        <td>{{$file->file_name}}</td>
+                                        <td>
+                                            {{ $file->file_name }}<br>
+                                            <a onclick="copyToClipboard('{{ $file->code }}')" style="cursor: pointer;">
+                                                <span style="font-weight: bold; font-size: smaller;">{{'-'. $file->code . '-' }}</span>
+                                            </a>
+                                        </td>
                                         <td>{{$file->folder->folder_name}}</td>
                                         <td>{{$file->user->name}}</td>
                                         <td>{{$file->created_at}}</td>
@@ -98,6 +103,10 @@
                                             <button wire:click="downloadFile({{$file->id}})"
                                                 class="btn btn-outline-warning btn-sm" title="download"><i class="fa fa-download"></i>
                                             </button>
+                                            <button onclick="window.location.href='{{ route('viewFile', $file->id) }}'" class="btn btn-outline-success btn-sm" title="View">
+                                                <i class="fa fa-eye"></i>
+                                            </button>
+
                                             
                                         </td>
                                         
@@ -118,3 +127,14 @@
 
         </div>
         <livewire:scripts />
+        <script>
+            function copyToClipboard(code) {
+                var textarea = document.createElement('textarea');
+                textarea.value = code;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                toastr.info('Code copied to clipboard: ' + code);
+            }
+        </script>
