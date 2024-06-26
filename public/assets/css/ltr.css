@@ -20782,9 +20782,9 @@ footer {
     font-size: 1.286rem;
     cursor: pointer; }
   .card .info-drop {
-    position: absolute;
-    right: 15px;
-    top: 16px;
+    /* position: absolute; */
+    /* right: 15px;
+    top: 16px; */
     font-size: 1.286rem;
     cursor: pointer; }
     .card .info-drop .dropdown-menu {

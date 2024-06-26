@@ -18,15 +18,6 @@ class UsersTableSeeder extends Seeder
             'email' => 'murtada@gmail.com',
             'password' => bcrypt('12345678'),
         ])->roles()->attach(1); // Attach Admin role to the user
-        User::create([
-            'name' => 'Ahmed Luqman',
-            'email' => 'ahmed@gmail.com',
-            'password' => bcrypt('12345678'),
-        ])->roles()->attach(3); // Attach Admin role to the user
-        User::create([
-            'name' => 'Omar Mohammed',
-            'email' => 'omar@gmail.com',
-            'password' => bcrypt('12345678'),
-        ])->roles()->attach(4); // Attach Admin role to the user
+       
     }
 }

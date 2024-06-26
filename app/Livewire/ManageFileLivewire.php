@@ -23,7 +23,7 @@ class ManageFileLivewire extends Component
     public function downloadFile($fileId)
     {
         $file = File::findOrFail($fileId);
-        $filePath = storage_path('app/' . $file->file);
+        $filePath = storage_path('app/public/' . $file->file);
         return response()->download($filePath);
     }
 
@@ -46,7 +46,25 @@ class ManageFileLivewire extends Component
         // Delete the file from storage
         Storage::delete($filePath);
             $file->delete();
-            return redirect()->to(route('manageFile'));
+            return redirect()->to(route('manageFile'))->with('success', 'File deleted successfully.');
+        }
+    }
+
+    public function approvedFile($fileId)
+    {
+        $file = File::find($fileId);
+        if ($file) {
+            $file->update(['status_id' => 1]);
+            toastr()->success('File Approved Successfully!');
+        }
+    }
+
+    public function rejectFile($fileId)
+    {
+        $file = File::find($fileId);
+        if ($file) {
+            $file->update(['status_id' => 3]);
+            toastr()->success('File Rejected!');
         }
     }
 
@@ -56,6 +74,8 @@ class ManageFileLivewire extends Component
         $url = request()->url(); 
         $parts = explode('/', $url); 
         $id = end($parts);
+
+        $files = File::query(); 
 
         // used to filter between file filter by using dep_id becuse have same dep_id
         $user = Auth::user();
@@ -69,6 +89,8 @@ class ManageFileLivewire extends Component
                 if($folder)
                 {
                     $files = file::where('dep_id',$folder->dep_id)->orderByDesc('created_at');
+                }else {
+                    $files = $files->whereNull('id'); 
                 }
                 
             }
@@ -82,7 +104,7 @@ class ManageFileLivewire extends Component
                 ->orWhereHas('folder', function ($query) {$query->where('folder_name', 'like', "%{$this->searchByName}%");})
                 ->orWhereHas('user', function ($query) {$query->where('name', 'like', "%{$this->searchByName}%");});
             }
-        $files = $files->paginate(20);
+        $files = $files->paginate(10);
         return view('livewire.manage-file-livewire', compact('files'));
     }
 

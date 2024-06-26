@@ -21669,7 +21669,7 @@ footer {
     font-size: 1.286rem;
     cursor: pointer; }
   .card .info-drop {
-    position: absolute;
+    /* position: absolute; */
     left: 15px;
     top: 16px;
     font-size: 1.286rem;

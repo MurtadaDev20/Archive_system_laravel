@@ -34,7 +34,7 @@ class FileLivewire extends Component
     public function save()
     {
         $user = Auth::user();
-        sleep(1);
+        // sleep(1);
         $this->validate([
             'fileName' => 'required',
             'selectFolder' => 'required|exists:folders,id',
@@ -63,7 +63,8 @@ class FileLivewire extends Component
             'user_id'=>$user->id ,
             'role_id'=>$roleUser->role_id ,
             'dep_id' => $department->dep_id,
-            'file' => $path
+            'file' => $path,
+            'status_id' => 2
 
         ]);
        

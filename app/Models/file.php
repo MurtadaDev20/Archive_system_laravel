@@ -9,7 +9,7 @@ class file extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['code','file_name', 'folder_id', 'file','dep_id','user_id','role_id'];
+    protected $fillable = ['code','file_name', 'folder_id', 'file','dep_id','user_id','role_id','status_id'];
 
     public function folder()
     {
@@ -29,5 +29,10 @@ class file extends Model
     public function role()
     {
         return $this->belongsTo(Role::class , 'role_id');
+    }
+
+    public function status()
+    {
+        return $this->belongsTo(Status::class , 'status_id');
     }
 }
