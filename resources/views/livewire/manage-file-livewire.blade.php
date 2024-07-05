@@ -1,5 +1,5 @@
 <div>
-
+    
     <div class="page-title">
 
         <div class="row">
@@ -74,9 +74,9 @@
                                     <tr>
                                         <td>{{$num++}}</td>
                                         <td>
-                                            {{ $file->file_name }}<br>
+                                            <span style="font-weight: bold;">{{ $file->file_name }}</span><br>
                                             <a onclick="copyToClipboard('{{ $file->code }}')" style="cursor: pointer;">
-                                                <span style="font-weight: bold; font-size: smaller;">{{'-'. $file->code . '-' }}</span>
+                                                <span style=" font-size: smaller;">{{'-'. $file->code . '-' }}</span>
                                             </a>
                                         </td>
                                         <td>{{$file->folder->folder_name}}</td>
@@ -187,3 +187,5 @@
                 toastr.info('Code copied to clipboard: ' + code);
             }
         </script>
+        
+        

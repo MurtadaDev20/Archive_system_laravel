@@ -33,4 +33,15 @@ All File
 @endsection
 @section('js')
 @livewireScripts
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        Echo.channel('files')
+            .listen('FileCreated', (e) => {
+                // Livewire.emit('refreshFiles');
+                Livewire.dispatch('fileApproved');
+            });
+    });
+</script>
+
+
 @endsection

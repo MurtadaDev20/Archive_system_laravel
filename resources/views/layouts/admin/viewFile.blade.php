@@ -31,8 +31,8 @@ All File
         <div class="card card-statistics h-100">
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-2"></div>
-                    <div class="col-md-8">
+                    {{-- <div class="col-md-2"></div> --}}
+                    <div class="col-md-12">
                         <iframe style="height: 100vh ; width:100%" src="{{ $path }}" frameborder="0"></iframe>
                     </div>
                 </div>

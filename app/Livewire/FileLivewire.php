@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Events\FileCreated;
 use App\Models\department;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -54,9 +55,9 @@ class FileLivewire extends Component
         $roleUser = RoleUser::where('user_id', $user->id)->first();
         
         // create code per file
-        $code = "ARC" . date('YmdHis') . "HIVE";
+        $code = "ARC" . date('YmdHis');
         
-        file::create([
+        $file = file::create([
             'code' => $code,
             'file_name' => $this->fileName,
             'folder_id'=>$this->selectFolder ,
@@ -67,8 +68,12 @@ class FileLivewire extends Component
             'status_id' => 2
 
         ]);
-       
 
+        // update table auto by pusher
+
+        event(new FileCreated($file));
+       
+        
         
         $this->reset(['fileName', 'selectFolder', 'attached']);
         $this->uploadProgress = 0;

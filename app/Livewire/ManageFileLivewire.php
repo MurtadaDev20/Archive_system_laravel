@@ -2,8 +2,10 @@
 
 namespace App\Livewire;
 
+use App\Events\FileCreated;
 use App\Models\file;
 use App\Models\folder;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -20,6 +22,16 @@ class ManageFileLivewire extends Component
     public $searchByName;
     public $fileContent;
 
+
+
+    protected $listeners = ['FileCreated' => 'render'];
+
+    // public function refreshFiles()
+    // {
+    //     // Refresh files data
+    //     $this->emit('refreshFiles');
+    // }
+    
     public function downloadFile($fileId)
     {
         $file = File::findOrFail($fileId);
@@ -42,20 +54,25 @@ class ManageFileLivewire extends Component
         if ($file) {
         // Construct the path relative to 'storage/app'
         $filePath = 'public/' . $file->file;
-
+        event(new FileCreated($file));
         // Delete the file from storage
         Storage::delete($filePath);
             $file->delete();
             return redirect()->to(route('manageFile'))->with('success', 'File deleted successfully.');
         }
+        
     }
 
     public function approvedFile($fileId)
     {
+        
         $file = File::find($fileId);
         if ($file) {
             $file->update(['status_id' => 1]);
             toastr()->success('File Approved Successfully!');
+            event(new FileCreated($file));
+            
+            
         }
     }
 
@@ -65,7 +82,15 @@ class ManageFileLivewire extends Component
         if ($file) {
             $file->update(['status_id' => 3]);
             toastr()->success('File Rejected!');
+            event(new FileCreated($file));
         }
+    }
+
+    public function getListeners()
+    {
+        return [
+            'fileApproved' => 'render',
+        ];
     }
 
     public function render()
@@ -102,7 +127,8 @@ class ManageFileLivewire extends Component
             $files = $files->where('file_name', 'like', "%{$this->searchByName}%")
                 ->orwhere('code', 'like', "%{$this->searchByName}%")
                 ->orWhereHas('folder', function ($query) {$query->where('folder_name', 'like', "%{$this->searchByName}%");})
-                ->orWhereHas('user', function ($query) {$query->where('name', 'like', "%{$this->searchByName}%");});
+                ->orWhereHas('user', function ($query) {$query->where('name', 'like', "%{$this->searchByName}%");})
+                ->orWhereHas('status', function ($query) {$query->where('name', 'like', "%{$this->searchByName}%");});
             }
         $files = $files->paginate(10);
         return view('livewire.manage-file-livewire', compact('files'));
