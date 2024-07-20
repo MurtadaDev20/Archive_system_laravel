@@ -6,8 +6,8 @@ use App\Events\FileCreated;
 use App\Models\department;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
-use App\Models\file;
-use App\Models\folder;
+use App\Models\File;
+use App\Models\Folder;
 use App\Models\RoleUser;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
@@ -27,11 +27,11 @@ class FileLivewire extends Component
 
     public function mount()
     {
-        
-        $this->folderName = folder::all();
-        
+
+        $this->folderName = Folder::all();
+
     }
-   
+
     public function save()
     {
         $user = Auth::user();
@@ -45,19 +45,19 @@ class FileLivewire extends Component
 
 
         $filename = Str::uuid() . '.' . $this->attached->extension();
-        $folder = folder::find($this->selectFolder);
+        $folder = Folder::find($this->selectFolder);
         $folderNameWithUser = $folder->folder_name . '_' . $user->name;
         $path = $this->attached->storeAs($folderNameWithUser, $filename ,'public');
 
 
-        $department = folder::find($this->selectFolder);
+        $department = Folder::find($this->selectFolder);
         $user = Auth::user();
         $roleUser = RoleUser::where('user_id', $user->id)->first();
-        
+
         // create code per file
         $code = "ARC" . date('YmdHis');
-        
-        $file = file::create([
+
+        $file = File::create([
             'code' => $code,
             'file_name' => $this->fileName,
             'folder_id'=>$this->selectFolder ,
@@ -72,9 +72,9 @@ class FileLivewire extends Component
         // update table auto by pusher
 
         event(new FileCreated($file));
-       
-        
-        
+
+
+
         $this->reset(['fileName', 'selectFolder', 'attached']);
         $this->uploadProgress = 0;
         $this->isUploading = false;
@@ -84,7 +84,7 @@ class FileLivewire extends Component
     }
     public function render()
     {
-        
+
         return view('livewire.file-livewire');
     }
 }

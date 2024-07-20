@@ -3,8 +3,8 @@
 namespace App\Livewire;
 
 use App\Events\FileCreated;
-use App\Models\file;
-use App\Models\folder;
+use App\Models\File;
+use App\Models\Folder;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -31,7 +31,7 @@ class ManageFileLivewire extends Component
     //     // Refresh files data
     //     $this->emit('refreshFiles');
     // }
-    
+
     public function downloadFile($fileId)
     {
         $file = File::findOrFail($fileId);
@@ -50,7 +50,7 @@ class ManageFileLivewire extends Component
 
     public function deleteFile($fileId)
     {
-        $file = file::find($fileId);
+        $file = File::find($fileId);
         if ($file) {
         // Construct the path relative to 'storage/app'
         $filePath = 'public/' . $file->file;
@@ -60,19 +60,19 @@ class ManageFileLivewire extends Component
             $file->delete();
             return redirect()->to(route('manageFile'))->with('success', 'File deleted successfully.');
         }
-        
+
     }
 
     public function approvedFile($fileId)
     {
-        
+
         $file = File::find($fileId);
         if ($file) {
             $file->update(['status_id' => 1]);
             toastr()->success('File Approved Successfully!');
             event(new FileCreated($file));
-            
-            
+
+
         }
     }
 
@@ -96,31 +96,31 @@ class ManageFileLivewire extends Component
     public function render()
     {
         //used to get id folder
-        $url = request()->url(); 
-        $parts = explode('/', $url); 
+        $url = request()->url();
+        $parts = explode('/', $url);
         $id = end($parts);
 
-        $files = File::query(); 
+        $files = File::query();
 
         // used to filter between file filter by using dep_id becuse have same dep_id
         $user = Auth::user();
-        if (ctype_digit($id) && $id > 0) 
+        if (ctype_digit($id) && $id > 0)
         {
             $files = file::where('folder_id',$id)->orderByDesc('created_at');
-        } 
-        else 
+        }
+        else
             {
                 $folder = folder::where('user_id', $user->manager_id)->orWhere('user_id', $user->id)->first();
                 if($folder)
                 {
                     $files = file::where('dep_id',$folder->dep_id)->orderByDesc('created_at');
                 }else {
-                    $files = $files->whereNull('id'); 
+                    $files = $files->whereNull('id');
                 }
-                
+
             }
 
-        // search by using name or created at 
+        // search by using name or created at
         if ($this->from) $files = $files->where('created_at', '>=', $this->from);
         if ($this->to) $files = $files->where('created_at', '<=', $this->to);
         if ($this->searchByName) {
@@ -134,6 +134,6 @@ class ManageFileLivewire extends Component
         return view('livewire.manage-file-livewire', compact('files'));
     }
 
-    
+
 
 }

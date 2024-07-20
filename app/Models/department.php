@@ -17,7 +17,7 @@ class department extends Model
     }
     public function files()
     {
-        return $this->hasMany(file::class,'dep_id');
+        return $this->hasMany(File::class,'dep_id');
     }
 
     public function user()

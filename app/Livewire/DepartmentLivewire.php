@@ -26,17 +26,17 @@ class DepartmentLivewire extends Component
     public $editDepartmentId;
     public $managerSelect;
 
-    
+
     #[Rule('required|unique:departments,manager_id')]
     public $selectedManager;
 
 
-   
+
     public function mount()
-    { 
+    {
         $this->managerSelect = RoleUser::with('users', 'role')->get();
     }
-   
+
 
     public function addDepartment()
     {
@@ -72,7 +72,7 @@ class DepartmentLivewire extends Component
         $this->editMode = true;
         $this->editDepartmentId = $departmentId;
         $this->department = $department->dep_name;
-        
+
         // dd($department->manager_id);
     }
 
@@ -104,13 +104,13 @@ class DepartmentLivewire extends Component
 
     public function DepartmentDelete($deptId)
     {
-        $dept = department::find($deptId);
+        $dept = Department::find($deptId);
         if ($dept) {
             if ($dept->folders()->count() > 0) {
                 toastr()->error('Cannot delete Department. It contains a Folder.');
                 return redirect()->to(route('departments'));
-                
-                
+
+
             }
             $dept->delete();
             return redirect()->to(route('departments'));
@@ -119,12 +119,12 @@ class DepartmentLivewire extends Component
 
     public function render()
     {
-       
+
         //  dd($this->departments);
         return view('livewire.department-livewire',[
             'departments' => department::with('user', 'role','folders','files')->paginate(10),
         ]);
     }
-   
+
 
 }
