@@ -1,5 +1,5 @@
 <div>
-    
+
     <div class="page-title">
 
         <div class="row">
@@ -63,8 +63,8 @@
                                         <th>Apr Or Rej</th>
                                         @endif
                                         @endisset
-                                        
-                                        
+
+
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -96,8 +96,8 @@
                                             @else
                                                 <label class="badge bg-danger text-white">{{$file->status->name}}</label></td>
                                             @endif
-                                            
-                                        
+
+
                                         <td>
                                             @if (Auth::user()->id == $file->user_id )
                                             @if ($file->status_id != 1)
@@ -127,7 +127,7 @@
                                                     </div>
                                                 </div>
                                             @endif
-                                            
+
                                             @endif
                                             {{-- End Delete --}}
                                             {{-- Download --}}
@@ -139,9 +139,9 @@
                                                 <i class="fa fa-eye"></i>
                                             </button>
 
-                                            
+
                                         </td>
-                                        
+
                                         {{-- //approved and reject --}}
                                         @if (Auth::user()->id == $file->folder->user_id)
                                             <td >
@@ -153,16 +153,16 @@
                                                 </button>
                                             </td>
                                         @endif
-                                        
-                                        
+
+
 
                                     </tr>
                                     @endif
                                     @endforeach
                                 </tbody>
-                                
+
                             </table>
-                            
+
                             <hr>
                             <div class="my-auto">
                                 <a class="btn btn-outline-primary btn-sm" href="{{route('addFile')}}">Add New File</a>
@@ -177,6 +177,15 @@
         </div>
         <livewire:scripts />
         <script>
+            document.addEventListener('DOMContentLoaded', function () {
+            Echo.channel('files')
+                .listen('FileCreated', (e) => {
+                    console.log('FileCreated event received:', e);
+                    Livewire.dispatch('fileApproved');
+                });
+        });
+        </script>
+        <script>
             function copyToClipboard(code) {
                 var textarea = document.createElement('textarea');
                 textarea.value = code;
@@ -187,5 +196,6 @@
                 toastr.info('Code copied to clipboard: ' + code);
             }
         </script>
-        
-        
+
+
+

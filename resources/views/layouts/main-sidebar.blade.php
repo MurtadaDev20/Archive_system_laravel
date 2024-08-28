@@ -17,7 +17,7 @@
                     <!-- menu item Elements-->
                     @php
                     $roles = Auth::user()->roles;
-                
+
                     foreach ($roles as $role) {
                         if ($role->name == 'Admin') {
                             echo '<li>

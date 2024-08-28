@@ -7,6 +7,7 @@ use App\Models\File;
 use App\Models\Folder;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Broadcast;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Storage;
@@ -24,13 +25,8 @@ class ManageFileLivewire extends Component
 
 
 
-    protected $listeners = ['FileCreated' => 'render'];
+    protected $listeners = ['fileApproved' => 'render'];
 
-    // public function refreshFiles()
-    // {
-    //     // Refresh files data
-    //     $this->emit('refreshFiles');
-    // }
 
     public function downloadFile($fileId)
     {
@@ -45,7 +41,6 @@ class ManageFileLivewire extends Component
         $filePath = storage_path('app/' . $file->file);
 
         $this->fileContent = base64_encode(file_get_contents($filePath));
-        // $this->emit('loadPdf', $this->fileContent);
     }
 
     public function deleteFile($fileId)
@@ -54,7 +49,6 @@ class ManageFileLivewire extends Component
         if ($file) {
         // Construct the path relative to 'storage/app'
         $filePath = 'public/' . $file->file;
-        event(new FileCreated($file));
         // Delete the file from storage
         Storage::delete($filePath);
             $file->delete();
@@ -73,6 +67,7 @@ class ManageFileLivewire extends Component
             event(new FileCreated($file));
 
 
+
         }
     }
 
@@ -82,16 +77,11 @@ class ManageFileLivewire extends Component
         if ($file) {
             $file->update(['status_id' => 3]);
             toastr()->success('File Rejected!');
-            event(new FileCreated($file));
+            event(new FileCreated($file->id));
         }
     }
 
-    public function getListeners()
-    {
-        return [
-            'fileApproved' => 'render',
-        ];
-    }
+
 
     public function render()
     {

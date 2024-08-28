@@ -18,11 +18,16 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect('/admin');
 });
+
+Route::get('/test-pusher', function () {
+    return view('pusher_test');
+});
+
 Route::group(['prefix' => 'admin', 'middleware' => ['auth']], function () {
 
 
     Route::get('/dashboard', function () {return view('layouts.dashboard'); })->name('dashboard')->middleware('role');
-    Route::get('/', function () {return view('layouts.dashboard'); })->name('dashboard')->middleware('role');
+    Route::get('/', function () {return view('layouts.dashboard'); })->middleware('role');
 
     //Main
     Route::get('/master', function () {return view('layouts.master'); });
