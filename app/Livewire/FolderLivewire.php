@@ -5,87 +5,85 @@ namespace App\Livewire;
 use App\Models\Department;
 use App\Models\Folder;
 use App\Models\RoleUser;
-use Livewire\Component;
-use Livewire\Attributes\Rule;
+use App\Services\AuditLogger;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\Rule;
+use Livewire\Component;
 use Livewire\WithPagination;
 
 class FolderLivewire extends Component
 {
+    use AuthorizesRequests;
     use WithPagination;
-    #[Rule('required')]
+
+    #[Rule('required|min:2|max:255')]
     public $folder;
-    public $folderse;
-    public $department;
-    public $user_id;
+
     public $editFolderId;
-    public $role_id;
     public $editMode = false;
-
-
 
     public function addFolder()
     {
+        $this->authorize('create', Folder::class);
         $this->validate();
+
         $user = Auth::user();
+        $department = Department::where('manager_id', $user->id)->first();
 
-        if ($user) {
-            $department  = Department::where('manager_id', Auth::user()->id)->first();
-            if ($department) {
-                $dep_id = $department->id;
+        if (! $department) {
+            toastr()->error(__('archive.msg_folder_manager_only'));
 
-                $roleUser = RoleUser::where('user_id', $user->id)->first();
-                Folder::create([
-                    'folder_name' => $this->folder,
-                    'dep_id' => $dep_id ,
-                    'user_id' => $user->id,
-                    'role_id' => $roleUser->role_id,
-                ]);
-                // Create a folder in the storage directory with the name concatenated with the user's name
-
-                $folderNameWithUser = $this->folder . '_' . $user->name;
-                Storage::disk('public')->makeDirectory($folderNameWithUser);
-
-                toastr()->success('Data has been saved successfully!');
-
-                $this->reset('folder');
-                $this->folderse = folder::all();
-
-                // $this->emit('departmentAdded');
-            }
-            else{
-                toastr()->error('You Are Not Manager');
-            }
-
-
+            return;
         }
+
+        $roleUser = RoleUser::where('user_id', $user->id)->first();
+        $folder = Folder::create([
+            'folder_name' => $this->folder,
+            'dep_id' => $department->id,
+            'user_id' => $user->id,
+            'role_id' => $roleUser?->role_id,
+        ]);
+
+        Storage::disk('local')->makeDirectory("documents/{$folder->id}");
+        AuditLogger::log(
+            'folder.create',
+            __('archive.audit_folder_create', ['name' => $folder->folder_name]),
+            $folder,
+            ['name' => $folder->folder_name]
+        );
+
+        toastr()->success(__('archive.msg_folder_created'));
+        $this->reset('folder');
     }
 
-    ///////////////////////////////////////// Update //////////////////////////////
-
-    public function editFolder($folderId)
+    public function editFolder(int $folderId)
     {
-        $folder = Folder::find($folderId);
-
+        $folder = Folder::findOrFail($folderId);
+        $this->authorize('update', $folder);
         $this->editMode = true;
         $this->editFolderId = $folderId;
         $this->folder = $folder->folder_name;
-
-        // dd($department->manager_id);
     }
 
     public function updateFolder()
     {
-        $this->validate(['folder' => 'required']);
+        $this->validate(['folder' => 'required|min:2|max:255']);
+        $folder = Folder::findOrFail($this->editFolderId);
+        $this->authorize('update', $folder);
+        $folder->update(['folder_name' => $this->folder]);
 
-        $folder = Folder::find($this->editFolderId);
-        $folder->folder_name = $this->folder;
-        $folder->save();
+        AuditLogger::log(
+            'folder.update',
+            __('archive.audit_folder_update', ['name' => $folder->folder_name]),
+            $folder,
+            ['name' => $folder->folder_name]
+        );
+        toastr()->success(__('archive.msg_folder_updated'));
 
         $this->editMode = false;
         $this->folder = '';
-        $this->folder = Folder::all();
     }
 
     public function cancelUpdate()
@@ -94,34 +92,35 @@ class FolderLivewire extends Component
         $this->folder = '';
     }
 
-    public function deleteFolder($folderId)
+    public function deleteFolder(int $folderId)
     {
-        $folder = Folder::find($folderId);
+        $folder = Folder::findOrFail($folderId);
+        $this->authorize('delete', $folder);
 
-        if ($folder) {
-            // Check if the folder contains any files
-            if ($folder->files()->count() > 0) {
-                toastr()->error('Cannot delete folder. It contains files.');
-                return redirect()->to(route('folders'));
+        if ($folder->files()->count() > 0) {
+            toastr()->error(__('archive.msg_folder_has_files'));
 
-
-            }
-
-            $folder->delete();
-            toastr()->success('Delete successfully!');
-            return redirect()->to(route('folders'));
+            return;
         }
 
+        AuditLogger::log(
+            'folder.delete',
+            __('archive.audit_folder_delete', ['name' => $folder->folder_name]),
+            $folder,
+            ['name' => $folder->folder_name]
+        );
+        $folder->delete();
+        toastr()->success(__('archive.msg_folder_deleted'));
 
+        return redirect()->route('folders');
     }
 
     public function render()
     {
-
-        return view('livewire.folder-livewire',[
-            'folders' => Folder::with('user', 'role','files')
-            ->orderBy('created_at', 'desc')
-            ->paginate(16),
+        return view('livewire.folder-livewire', [
+            'folders' => Folder::with(['user', 'files'])
+                ->orderByDesc('created_at')
+                ->paginate(12),
         ]);
     }
 }

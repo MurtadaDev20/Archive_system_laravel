@@ -2,64 +2,101 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles as SpatieHasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SpatieHasRoles {
+        SpatieHasRoles::hasRole as spatieHasRole;
+        SpatieHasRoles::hasAnyRole as spatieHasAnyRole;
+    }
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'manager_id',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'manager_id' => 'integer',
     ];
 
-
-    public function roles()
+    public function legacyRoles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class);
     }
-   
 
-    public function files()
+    public function files(): HasMany
     {
         return $this->hasMany(File::class);
     }
-    public function folder()
+
+    public function folders(): HasMany
     {
-        return $this->hasMany(folder::class);
+        return $this->hasMany(Folder::class);
     }
-    public function department()
+
+    public function departments(): HasMany
     {
-        return $this->hasMany(department::class);
+        return $this->hasMany(Department::class);
+    }
+
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    public function employees(): HasMany
+    {
+        return $this->hasMany(User::class, 'manager_id');
+    }
+
+    public function hasRole(string $roleName): bool
+    {
+        $spatieAliases = [
+            'Admin' => ['Admin', 'Super Admin'],
+            'Manager' => ['Department Manager', 'Manager'],
+            'Employee' => ['Employee'],
+            'Editor' => ['Employee'],
+        ];
+
+        foreach ($spatieAliases[$roleName] ?? [$roleName] as $candidate) {
+            if ($this->spatieHasRole($candidate)) {
+                return true;
+            }
+        }
+
+        return $this->legacyRoles()->where('name', $roleName)->exists();
+    }
+
+    public function hasAnyRole(array $roleNames): bool
+    {
+        foreach ($roleNames as $roleName) {
+            if ($this->hasRole($roleName)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function canPermission(string $permission): bool
+    {
+        return $this->can($permission);
     }
 }

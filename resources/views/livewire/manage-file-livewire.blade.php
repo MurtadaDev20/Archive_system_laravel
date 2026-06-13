@@ -1,201 +1,216 @@
-<div>
+<div class="position-relative" wire:loading.class="opacity-75">
+    <div wire:loading.flex class="livewire-loading-overlay">
+        <div class="spinner-border text-success" role="status"><span class="visually-hidden">{{ __('archive.loading') }}</span></div>
+    </div>
 
-    <div class="page-title">
+    <div class="archive-card mb-3">
+        <div class="archive-card-body py-2">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="small text-archive-muted me-1">{{ __('archive.quick_filters') }}:</span>
+                <button type="button" wire:click="$set('inboxFilter', '')"
+                    class="btn btn-sm {{ $inboxFilter === '' ? 'btn-archive-accent' : 'btn-outline-secondary' }}">
+                    {{ __('archive.all') }}
+                </button>
+                @if(($sidebarCounts['transfers'] ?? 0) > 0 || $inboxFilter === 'transfers')
+                    <button type="button" wire:click="$set('inboxFilter', 'transfers')"
+                        class="btn btn-sm {{ $inboxFilter === 'transfers' ? 'btn-archive-accent' : 'btn-outline-danger' }}">
+                        <i class="bi bi-arrow-left-right me-1"></i>{{ __('archive.incoming_transfers') }}
+                        <span class="badge bg-danger ms-1">{{ $sidebarCounts['transfers'] ?? 0 }}</span>
+                    </button>
+                @endif
+                @if(Auth::user()->hasRole('Manager') && (($sidebarCounts['approvals'] ?? 0) > 0 || $inboxFilter === 'approvals'))
+                    <button type="button" wire:click="$set('inboxFilter', 'approvals')"
+                        class="btn btn-sm {{ $inboxFilter === 'approvals' ? 'btn-archive-accent' : 'btn-outline-warning' }}">
+                        <i class="bi bi-hourglass-split me-1"></i>{{ __('archive.pending_approvals') }}
+                        <span class="badge bg-warning text-dark ms-1">{{ $sidebarCounts['approvals'] ?? 0 }}</span>
+                    </button>
+                @endif
+            </div>
+        </div>
+    </div>
 
-        <div class="row">
-            <div class="col-xl-12 mb-30">
-                <div class="card card-statistics h-100">
-                    <div class="card-body">
-                        <div class="d-block d-md-flex justify-content-between">
-                            <div class="d-block">
-                                <h5 class="card-title pb-0 border-0 mt-3">Data Local</h5>
-                            </div>
-                            <div class="d-block d-md-flex clearfix sm-mt-20">
-                                <Label class="m-3 fs-3">By Date : </Label>
-                                <div class="mx-2">
-
-                                    <div class="input-group">
-                                        <input wire:model.lazy="from" type="date" class="form-control "
-                                            placeholder="YYYY-MM-DD">
-                                        <span class="input-group-addon">To</span>
-                                        <input wire:model.lazy="to" type="date" class="form-control"
-                                            placeholder="YYYY-MM-DD">
-                                    </div>
-                                </div>
-
-                                <Label class="m-3 fs-3">By Name : </Label>
-                                <div class="widget-search ml-0 clearfix">
-                                    <input wire:model.lazy="searchByName" type="search" class="form-control"
-                                        placeholder="Search....">
-                                </div>
-                            </div>
-                            <div>
-                                {{-- <button wire:click="sear()" class="button button-border fs-2 btn-sm"><i
-                                        class="fa fa-search"></i></button> --}}
-                                {{-- <a class="button button-border fs-2   btn-sm" href="#"><i class="fa fa-search"></i>
-                                </a> --}}
-                            </div>
-
+    <div class="archive-card mb-4">
+        <div class="archive-card-header">
+            <h5><i class="bi bi-funnel me-2"></i>{{ __('archive.advanced_search') }}</h5>
+            @can('create', \App\Models\File::class)
+                <a href="{{ route('addFile') }}" class="btn btn-archive-accent btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i>{{ __('archive.upload_document') }}
+                </a>
+            @endcan
+        </div>
+        <div class="archive-card-body">
+            <div class="search-panel">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">{{ __('archive.search') }}</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input wire:model.live.debounce.400ms="searchByName" type="search" class="form-control" placeholder="{{ __('archive.search_edms_placeholder') }}">
                         </div>
-                        @php
-                            $showApproveOrReject = false;
-                            foreach ($files as $file) {
-                                if (Auth::user()->id == $file->folder->user_id) {
-                                    $showApproveOrReject = true;
-                                    break;
-                                }
-                            }
-                        @endphp
-                        <div class="table-responsive mt-15">
-                            <table class="table center-aligned-table mb-0">
-                                <thead>
-                                    <tr class="text-dark">
-                                        <th>#</th>
-                                        <th>File Name</th>
-                                        <th>Folder Name</th>
-                                        <th>Add By</th>
-                                        <th>Created At</th>
-                                        <th>Updated At</th>
-                                        <th>Status</th>
-                                        <th>Action</th>
-                                        @isset($file)
-                                        @if (Auth::user()->id == $file->folder->user_id)
-                                        <th>Apr Or Rej</th>
-                                        @endif
-                                        @endisset
-
-
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($files as $file )
-
-                                    @if (Auth::user()->manager_id ==$file->folder->user_id || Auth::user()->id == $file->folder->user_id)
-                                    <tr>
-                                        <td>{{$num++}}</td>
-                                        <td>
-                                            <span style="font-weight: bold;">{{ $file->file_name }}</span><br>
-                                            <a onclick="copyToClipboard('{{ $file->code }}')" style="cursor: pointer;">
-                                                <span style=" font-size: smaller;">{{'-'. $file->code . '-' }}</span>
-                                            </a>
-                                        </td>
-                                        <td>{{$file->folder->folder_name}}</td>
-                                        <td>{{$file->user->name}}</td>
-                                        <td>{{$file->created_at}}</td>
-                                        <td> {{$file->updated_at}}</td>
-                                        <td>
-                                            {{-- approved --}}
-                                            @if ($file->status_id == 1)
-                                                <label class="badge bg-success text-white">{{$file->status->name}}</label></td>
-
-                                            {{-- Waiting --}}
-                                            @elseif ($file->status_id == 2)
-                                                <label class="badge bg-warning text-white">{{$file->status->name}}</label></td>
-
-                                            {{-- Rejected --}}
-                                            @else
-                                                <label class="badge bg-danger text-white">{{$file->status->name}}</label></td>
-                                            @endif
-
-
-                                        <td>
-                                            @if (Auth::user()->id == $file->user_id )
-                                            @if ($file->status_id != 1)
-                                            <button class="btn btn-outline-danger btn-sm"  title="Delete"
-                                            data-toggle="modal" data-target="#deleteModal"><i class="fa fa-trash"></i></button>
-
-                                                <!-- Delete Modal -->
-                                                <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog"
-                                                    aria-labelledby="deleteModalLabel" aria-hidden="true">
-                                                    <div class="modal-dialog" role="document">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                        <h5 class="modal-title" id="deleteModalLabel">Delete User</h5>
-                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                            <span aria-hidden="true">&times;</span>
-                                                        </button>
-                                                        </div>
-                                                        <div class="modal-body">
-                                                        Are you sure you want to delete this File?
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                                        <button wire:click="deleteFile({{$file->id}})" type="button"
-                                                            class="btn btn-danger">Delete</button>
-                                                        </div>
-                                                    </div>
-                                                    </div>
-                                                </div>
-                                            @endif
-
-                                            @endif
-                                            {{-- End Delete --}}
-                                            {{-- Download --}}
-                                            <button wire:click="downloadFile({{$file->id}})"
-                                                class="btn btn-outline-warning btn-sm" title="download"><i class="fa fa-download"></i>
-                                            </button>
-                                            {{-- View --}}
-                                            <button onclick="window.location.href='{{ route('viewFile', $file->id) }}'" class="btn btn-outline-success btn-sm" title="View">
-                                                <i class="fa fa-eye"></i>
-                                            </button>
-
-
-                                        </td>
-
-                                        {{-- //approved and reject --}}
-                                        @if (Auth::user()->id == $file->folder->user_id)
-                                            <td >
-                                                <button wire:click="approvedFile({{$file->id}})"
-                                                    class="btn btn-outline-success btn-sm" title="Approve"><i class="fa fa-thumbs-up"></i>
-                                                </button>
-                                                <button wire:click="rejectFile({{$file->id}})"
-                                                    class="btn btn-outline-danger btn-sm" title="Reject"><i class="fa fa-times"></i>
-                                                </button>
-                                            </td>
-                                        @endif
-
-
-
-                                    </tr>
-                                    @endif
-                                    @endforeach
-                                </tbody>
-
-                            </table>
-
-                            <hr>
-                            <div class="my-auto">
-                                <a class="btn btn-outline-primary btn-sm" href="{{route('addFile')}}">Add New File</a>
-                            </div>
-                            {{ $files->links() }}
-                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">{{ __('archive.status') }}</label>
+                        <select wire:model.live="statusFilter" class="form-select form-select-sm">
+                            <option value="">{{ __('archive.all_statuses') }}</option>
+                            @foreach($statuses as $status)
+                                <option value="{{ $status->id }}">{{ $status->label() }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">{{ __('archive.department') }}</label>
+                        <select wire:model.live="departmentFilter" class="form-select form-select-sm">
+                            <option value="">{{ __('archive.all_departments') }}</option>
+                            @foreach($departments as $dep)
+                                <option value="{{ $dep->id }}">{{ $dep->dep_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">{{ __('archive.category') }}</label>
+                        <select wire:model.live="categoryFilter" class="form-select form-select-sm">
+                            <option value="">{{ __('archive.all_categories') }}</option>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">{{ __('archive.document_type') }}</label>
+                        <select wire:model.live="documentTypeFilter" class="form-select form-select-sm">
+                            <option value="">{{ __('archive.all_types') }}</option>
+                            @foreach($documentTypes as $type)
+                                <option value="{{ $type->id }}">{{ $type->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">{{ __('archive.tags') }}</label>
+                        <select wire:model.live="tagFilter" class="form-select form-select-sm">
+                            <option value="">{{ __('archive.all') }}</option>
+                            @foreach($tags as $tag)
+                                <option value="{{ $tag->id }}">{{ $tag->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">{{ __('archive.from_date') }}</label>
+                        <input wire:model.live.debounce.400ms="from" type="date" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">{{ __('archive.to_date') }}</label>
+                        <input wire:model.live.debounce.400ms="to" type="date" class="form-control form-control-sm">
                     </div>
                 </div>
             </div>
-
-
         </div>
-        <livewire:scripts />
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-            Echo.channel('files')
-                .listen('FileCreated', (e) => {
-                    console.log('FileCreated event received:', e);
-                    Livewire.dispatch('fileApproved');
-                });
-        });
-        </script>
-        <script>
-            function copyToClipboard(code) {
-                var textarea = document.createElement('textarea');
-                textarea.value = code;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                toastr.info('Code copied to clipboard: ' + code);
-            }
-        </script>
+    </div>
 
+    <div class="archive-card">
+        <div class="archive-card-header">
+            <h5><i class="bi bi-table me-2"></i>{{ __('archive.documents_list') }}</h5>
+            <span class="badge text-bg-light border">{{ $files->total() }} {{ __('archive.total') }}</span>
+        </div>
+        <div class="archive-card-body p-0">
+            @if($files->isEmpty())
+                <x-empty-state
+                    icon="bi-file-earmark-x"
+                    :title="__('archive.no_documents')"
+                    :message="__('archive.no_documents_desc')"
+                    :actionLabel="Auth::user()->can('create', \App\Models\File::class) ? __('archive.upload_document') : null"
+                    :actionUrl="Auth::user()->can('create', \App\Models\File::class) ? route('addFile') : null"
+                />
+            @else
+                <div class="table-responsive">
+                    <table class="table archive-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>{{ __('archive.document') }}</th>
+                                <th>{{ __('archive.document_number') }}</th>
+                                <th>{{ __('archive.folder') }}</th>
+                                <th>{{ __('archive.uploaded_by') }}</th>
+                                <th>{{ __('archive.date') }}</th>
+                                <th>{{ __('archive.status') }}</th>
+                                <th class="text-end">{{ __('archive.actions') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($files as $index => $file)
+                                    <tr wire:key="file-row-{{ $file->id }}">
+                                        <td>{{ $files->firstItem() + $index }}</td>
+                                        <td>
+                                            <div class="fw-semibold">{{ $file->file_name }}</div>
+                                            @if(in_array($file->id, $incomingIds, true))
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle small">
+                                                    <i class="bi bi-arrow-left-right me-1"></i>{{ __('archive.incoming_transfer') }}
+                                                </span>
+                                            @endif
+                                            @if($file->category)
+                                                <small class="text-archive-muted">{{ $file->category->name }}</small>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-link btn-sm p-0 text-archive-muted" onclick="navigator.clipboard.writeText('{{ $file->document_number ?? $file->code }}'); toastr?.info('{{ __('archive.code_copied') }}');">
+                                                <small><i class="bi bi-clipboard me-1"></i>{{ $file->document_number ?? $file->code }}</small>
+                                            </button>
+                                        </td>
+                                        <td>{{ $file->folder->folder_name }}</td>
+                                        <td>{{ $file->user->name }}</td>
+                                        <td>
+                                            <div>{{ $file->created_at->format('Y-m-d') }}</div>
+                                            <small class="text-archive-muted">{{ $file->created_at->format('H:i') }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge rounded-pill badge-status-{{ $file->status?->slug ?? 'draft' }}">{{ archive_status_label($file->status_id) }}</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-inline-flex gap-1 flex-wrap justify-content-end">
+                                                <a href="{{ route('document.show', $file->id) }}" class="btn btn-light btn-icon btn-sm" title="{{ __('archive.preview') }}">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <a href="{{ route('document.qr.print', ['file' => $file->id, 'size' => 'label', 'print' => 1]) }}" target="_blank" class="btn btn-light btn-icon btn-sm" title="{{ __('archive.print_label') }}">
+                                                    <i class="bi bi-qr-code"></i>
+                                                </a>
+                                                <button wire:click="downloadFile({{ $file->id }})" class="btn btn-light btn-icon btn-sm" title="{{ __('archive.download') }}">
+                                                    <i class="bi bi-download"></i>
+                                                </button>
 
+                                                @foreach($actionMap[$file->id] ?? [] as $action)
+                                                    <button wire:click="workflowFile({{ $file->id }}, '{{ $action['key'] }}')" class="btn btn-{{ $action['variant'] === 'danger' ? 'outline-danger' : ($action['variant'] === 'success' ? 'success' : 'archive-accent') }} btn-icon btn-sm" title="{{ $action['label'] }}">
+                                                        <i class="bi {{ $action['icon'] }}"></i>
+                                                    </button>
+                                                @endforeach
 
+                                                @if (Auth::user()->id == $file->user_id && ! in_array($file->status?->slug, ['approved', 'archived']))
+                                                    <button class="btn btn-outline-danger btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#deleteFile{{ $file->id }}" title="{{ __('archive.delete') }}">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                    <div class="modal fade" id="deleteFile{{ $file->id }}" tabindex="-1" aria-hidden="true">
+                                                        <div class="modal-dialog modal-dialog-centered">
+                                                            <div class="modal-content">
+                                                                <div class="modal-header">
+                                                                    <h5 class="modal-title">{{ __('archive.delete_document') }}</h5>
+                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                                </div>
+                                                                <div class="modal-body">{{ __('archive.delete_document_confirm') }} <strong>{{ $file->file_name }}</strong>?</div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('archive.cancel') }}</button>
+                                                                    <button wire:click="deleteFile({{ $file->id }})" type="button" class="btn btn-danger" data-bs-dismiss="modal">{{ __('archive.delete') }}</button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </td>
+                                    </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-3 border-top">{{ $files->links() }}</div>
+            @endif
+        </div>
+    </div>
+</div>

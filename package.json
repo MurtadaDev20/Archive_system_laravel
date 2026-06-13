@@ -3,7 +3,8 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build"
+        "build": "vite build",
+        "websocket": "soketi start --config=soketi.json"
     },
     "devDependencies": {
         "@popperjs/core": "^2.11.6",
@@ -14,6 +15,7 @@
         "vite": "^5.0.0"
     },
     "dependencies": {
+        "@soketi/soketi": "^1.6.0",
         "laravel-echo": "^1.16.1",
         "pusher-js": "^8.4.0-rc2"
     }

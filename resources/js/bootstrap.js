@@ -12,9 +12,7 @@ window.axios = axios;
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 /**
- * Echo exposes an expressive API for subscribing to channels and listening
- * for events that are broadcast by Laravel. Echo and event broadcasting
- * allows your team to easily build robust real-time web applications.
+ * Laravel Echo + Soketi (Pusher محلي على 127.0.0.1:6001)
  */
 
 import Echo from 'laravel-echo';
@@ -22,13 +20,19 @@ import Pusher from 'pusher-js';
 
 window.Pusher = Pusher;
 
+const scheme = import.meta.env.VITE_PUSHER_SCHEME ?? 'http';
+const host = import.meta.env.VITE_PUSHER_HOST ?? '127.0.0.1';
+const port = Number(import.meta.env.VITE_PUSHER_PORT ?? 6001);
+
 window.Echo = new Echo({
     broadcaster: 'pusher',
     key: import.meta.env.VITE_PUSHER_APP_KEY,
     cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER ?? 'mt1',
-    wsHost: import.meta.env.VITE_PUSHER_HOST ?? `ws-${import.meta.env.VITE_PUSHER_APP_CLUSTER}.pusher.com`,
-    wsPort: import.meta.env.VITE_PUSHER_PORT ?? 80,
-    wssPort: import.meta.env.VITE_PUSHER_PORT ?? 443,
-    forceTLS: (import.meta.env.VITE_PUSHER_SCHEME ?? 'https') === 'https',
+    wsHost: host,
+    wsPort: port,
+    wssPort: port,
+    forceTLS: scheme === 'https',
+    encrypted: scheme === 'https',
+    disableStats: true,
     enabledTransports: ['ws', 'wss'],
 });

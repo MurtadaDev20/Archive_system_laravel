@@ -1,18 +1,21 @@
 <?php
 
 namespace App\Livewire;
+
 use App\Models\Role;
 use App\Models\RoleUser;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
-use Livewire\Component;
+use App\Services\AuditLogger;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Livewire\Component;
 use Livewire\WithPagination;
 
 class Userslivewire extends Component
 {
+    use AuthorizesRequests;
     use WithPagination;
 
     public $fullname;
@@ -23,180 +26,193 @@ class Userslivewire extends Component
     public $password_manager;
     public $selectManager;
     public $roleSelected;
-    public $searchByName;
-    public $num =1;
     public $showUserMode = false;
     public $editMode = false;
-    
     public $editUserId;
-
-    public function mount()
-    { 
-            
-
-                
-    }
 
     public function addUser()
     {
+        $this->authorize('create', User::class);
         $this->validate([
             'fullname' => 'required',
             'email' => 'required|email|unique:users',
-            'password' => 'required|min:6',
+            'password' => 'required|min:8',
             'roleSelected' => 'required',
         ]);
 
-        if($this->selectManager > 0)
-        {
-            
-        $user = new User();
-        $user->name = $this->fullname;
-        $user->email = $this->email;
-        $user->manager_id = $this->selectManager;
-        $user->password = Hash::make($this->password);
-        $user->save();
+        $user = User::create([
+            'name' => $this->fullname,
+            'email' => $this->email,
+            'password' => Hash::make($this->password),
+            'manager_id' => $this->selectManager > 0 ? $this->selectManager : null,
+        ]);
 
-        $role_user = new RoleUser();
-        $role_user->user_id = $user->id;
-        $role_user->role_id = $this->roleSelected;
-        $role_user->save();
+        RoleUser::create(['user_id' => $user->id, 'role_id' => $this->roleSelected]);
+        AuditLogger::log(
+            'user.create',
+            __('archive.audit_user_create', ['email' => $user->email]),
+            $user,
+            ['email' => $user->email]
+        );
 
-        // Clear form fields
-        $this->fullname = '';
-        $this->email = '';
-        $this->password = '';
-        // $this->roleSelect = '';
-        toastr()->success('User added successfully!');
-        }
-        else
-        {
-        $user = new User();
-        $user->name = $this->fullname;
-        $user->email = $this->email;
-        $user->password = Hash::make($this->password);
-        $user->save();
-
-        $role_user = new RoleUser();
-        $role_user->user_id = $user->id;
-        $role_user->role_id = $this->roleSelected;
-        $role_user->save();
-
-        // Clear form fields
-        $this->fullname = '';
-        $this->email = '';
-        $this->password = '';
-        // $this->roleSelect = '';
-
-        toastr()->success('User added successfully!');
-        
-        }
+        $this->resetForm();
+        toastr()->success(__('archive.msg_user_created'));
     }
 
     public function addUserByManager()
     {
+        $this->authorize('createEmployee', User::class);
         $this->validate([
-            
             'fullname_manager' => 'required',
-            'email_manager' => 'required',
-            'password_manager' => 'required|min:6',
+            'email_manager' => 'required|email|unique:users,email',
+            'password_manager' => 'required|min:8',
         ]);
 
-       
-            
-        $user = new User();
-        $user->name = $this->fullname_manager;
-        $user->email = $this->email_manager;
-        $user->manager_id = Auth::user()->id;
-        $user->password = Hash::make($this->password_manager);
-        $user->save();
+        $user = User::create([
+            'name' => $this->fullname_manager,
+            'email' => $this->email_manager,
+            'manager_id' => Auth::id(),
+            'password' => Hash::make($this->password_manager),
+        ]);
 
-        $role_user = new RoleUser();
-        $role_user->user_id = $user->id;
-        $role_user->role_id = 4;
-        $role_user->save();
+        RoleUser::create(['user_id' => $user->id, 'role_id' => 4]);
+        AuditLogger::log(
+            'user.create.employee',
+            __('archive.audit_user_create_employee', ['email' => $user->email]),
+            $user,
+            ['email' => $user->email]
+        );
 
-        // Clear form fields
-        $this->fullname_manager = '';
-        $this->email_manager = '';
-        $this->roleSelected = '';
-        // $this->roleSelect = '';
-        toastr()->success('User added successfully!');
-    
-}
-    public function render()
+        $this->reset(['fullname_manager', 'email_manager', 'password_manager']);
+        toastr()->success(__('archive.msg_employee_created'));
+    }
+
+    public function editUser(int $userId)
     {
-        if($this->roleSelected == "4")
-        {
-            $this->showUserMode = true;
-        }else{
-            $this->showUserMode = false;
+        $user = User::findOrFail($userId);
+        $this->authorize('update', $user);
+
+        $roleUser = RoleUser::where('user_id', $userId)->first();
+
+        $this->editUserId = $userId;
+        $this->editMode = true;
+        $this->roleSelected = $roleUser ? (string) $roleUser->role_id : '';
+        $this->selectManager = $user->manager_id ? (string) $user->manager_id : '';
+        $this->showUserMode = $this->roleSelected === '4';
+
+        if (Auth::user()->hasRole('Manager')) {
+            $this->fullname_manager = $user->name;
+            $this->email_manager = $user->email;
+        } else {
+            $this->fullname = $user->name;
+            $this->email = $user->email;
+        }
+    }
+
+    public function submitUserForm()
+    {
+        if ($this->editMode) {
+            $this->updateUser();
+        } elseif (Auth::user()->hasRole('Admin')) {
+            $this->addUser();
+        } else {
+            $this->addUserByManager();
+        }
+    }
+
+    public function updateUser()
+    {
+        $user = User::findOrFail($this->editUserId);
+        $this->authorize('update', $user);
+
+        $isManagerEditing = Auth::user()->hasRole('Manager') && ! Auth::user()->hasRole('Admin');
+
+        if ($isManagerEditing) {
+            $this->validate([
+                'fullname_manager' => 'required',
+                'email_manager' => ['required', 'email', Rule::unique('users', 'email')->ignore($this->editUserId)],
+            ]);
+
+            $user->update([
+                'name' => $this->fullname_manager,
+                'email' => $this->email_manager,
+            ]);
+        } else {
+            $this->validate([
+                'fullname' => 'required',
+                'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($this->editUserId)],
+            ]);
+
+            $data = [
+                'name' => $this->fullname,
+                'email' => $this->email,
+            ];
+
+            if ($this->roleSelected === '4' && $this->selectManager) {
+                $data['manager_id'] = $this->selectManager;
+            }
+
+            $user->update($data);
         }
 
-        $roles = Role::all();
-        $manager = RoleUser::with('role','users')->get();
-        return view('livewire.userslivewire',[
-            
-            'roles' => $roles,
-            'manager' =>$manager ,
-            'users' => RoleUser::query()
-                ->with('role','users')
-                ->orderBy('created_at', 'desc')
-                ->paginate(10),
-        ]);
+        AuditLogger::log(
+            'user.update',
+            __('archive.audit_user_update', ['email' => $user->email]),
+            $user,
+            ['email' => $user->email]
+        );
+
+        $this->resetForm();
+        toastr()->success(__('archive.msg_user_updated'));
     }
-
-
-
-
-
-
-
-     ///////////////////////////////////////// Update //////////////////////////////
-
-     public function editUser($userId)
-     {
-         $user = User::find($userId);
- 
-         $this->editUserId = $userId;
-         $this->fullname = $user->name;
-         $this->email = $user->email;
-         $this->editMode = true;
-         
-         // dd($department->manager_id);
-     }
-
-     public function updateUser()
-    {
-        $this->validate([
-            'fullname' => 'required',
-            'email' => 'required|email|unique:users',
-        ]);
-
-        $user = User::find($this->editUserId);
-        $user->name = $this->fullname;
-        $user->email = $this->email;
-        $user->save();
-
-        $this->editMode = false;
-        $this->fullname = '';
-        $this->email = '';
-    }
-
 
     public function cancelUpdate()
     {
-        $this->editMode = false;
-        $this->fullname = '';
-        $this->email = '';
+        $this->resetForm();
     }
 
-
-    public function deleteUser($userId)
+    public function deleteUser(int $userId)
     {
-        $user = User::find($userId);
-        if ($user) {
-            $user->delete();
-            return redirect()->to(route('allUsers'));
-        }
+        $user = User::findOrFail($userId);
+        $this->authorize('delete', $user);
+        AuditLogger::log(
+            'user.delete',
+            __('archive.audit_user_delete', ['email' => $user->email]),
+            $user,
+            ['email' => $user->email]
+        );
+        $user->delete();
+
+        return redirect()->route('allUsers');
+    }
+
+    private function resetForm(): void
+    {
+        $this->editMode = false;
+        $this->editUserId = null;
+        $this->showUserMode = false;
+        $this->reset([
+            'fullname',
+            'email',
+            'password',
+            'roleSelected',
+            'selectManager',
+            'fullname_manager',
+            'email_manager',
+            'password_manager',
+        ]);
+    }
+
+    public function render()
+    {
+        $this->showUserMode = $this->roleSelected == '4';
+
+        return view('livewire.userslivewire', [
+            'roles' => Role::all(),
+            'manager' => RoleUser::with('role', 'users')->get(),
+            'users' => RoleUser::with(['role', 'users.manager'])
+                ->orderByDesc('created_at')
+                ->paginate(10),
+        ]);
     }
 }

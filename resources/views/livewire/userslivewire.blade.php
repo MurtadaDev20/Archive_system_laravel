@@ -1,276 +1,170 @@
 <div>
-  <div class="row">
-    <div class="col-md-12 mb-30">
-      <div class="card card-statistics h-100">
-        <div class="card-body">
-          <div class="card-body">
-            <h5 class="card-title">Add New User</h5>
-            @php 
-            $roless = Auth::user()->roles;
-          @endphp
-          @foreach ($roless as $role_name)
-            @if($role_name->name == 'Admin')
-
-            <form>
-              <div class="mb-3">
-                <label class="form-label" for="exampleInputEmail1">Full Name</label>
-                <input wire:model="fullname" type="text" class="form-control" aria-describedby="emailHelp"
-                  placeholder="IT">
-                @error('fullname') <span class="text-danger">{{ $message }}</span> @enderror
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="exampleInputEmail1">Email</label>
-                <input wire:model="email" type="email" class="form-control" aria-describedby="emailHelp"
-                  placeholder="info@gmail.com">
-                @error('email') <span class="text-danger">{{ $message }}</span> @enderror
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="exampleInputEmail1">Password</label>
-                <input wire:model="password" type="password" class="form-control" aria-describedby="emailHelp"
-                  placeholder="*******">
-                @error('password') <span class="text-danger">{{ $message }}</span> @enderror
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="exampleInputEmail1">Select Role</label>
-
-
-                <select wire:model.lazy="roleSelected" class="form-control p-2" id="inlineFormSelectPref">
-                  <option selected>Choose...</option>
-                  @foreach ($roles as $role)
-                  <option value="{{ $role->id}}">{{ $role->name }}</option>
-                  @endforeach
-                </select>
-                @error('roleSelected') <span class="text-danger">{{ $message }}</span> @enderror
-              </div>
-              @if ($showUserMode)
-              <div class="mb-3">
-                <label class="form-label" for="exampleInputEmail1">Select Manager</label>
-                <select wire:model="selectManager" class="form-control p-2" id="inlineFormSelectPref">
-                  <option selected>Choose...</option>
-                  @foreach ($manager as $manage)
-                  @if($manage->role_id == 3)
-                  <option value="{{$manage->users->id}}">{{$manage->users->name}}</option>
-                  @endif
-                  @endforeach
-                  <!-- Add options for managers here -->
-                </select>
-              </div>
-              @endif
-
-
-              @error('roleSelected') <span class="text-danger">{{ $message }}</span> @enderror
-              </div>
-
-              @if($editMode)
-              <button wire:click.prevent="updateUser" class="btn btn-primary">Update</button>
-              <button wire:click.prevent="cancelUpdate" class="btn btn-secondary">Cancel</button>
-              @else
-              <button wire:click.prevent="addUser" class="btn btn-primary">Add</button>
-              @endif
-
-          </form>
-
-          @elseif ($role_name->name == 'Manager')
-
-            <form>
-              <div class="mb-3">
-                <label class="form-label" for="exampleInputEmail1">Full Name</label>
-                <input wire:model="fullname_manager" type="text" class="form-control" aria-describedby="emailHelp"
-                  placeholder="IT">
-                @error('fullname_manager') <span class="text-danger">{{ $message }}</span> @enderror
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="exampleInputEmail1">Email</label>
-                <input wire:model="email_manager" type="email" class="form-control" aria-describedby="emailHelp"
-                  placeholder="info@gmail.com">
-                @error('email_manager') <span class="text-danger">{{ $message }}</span> @enderror
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="exampleInputEmail1">Password</label>
-                <input wire:model="password_manager" type="password" class="form-control" aria-describedby="emailHelp"
-                  placeholder="*******">
-                @error('password_manager') <span class="text-danger">{{ $message }}</span> @enderror
-              </div>
-              
-
-
-             
-              </div>
-              
-
-              @if($editMode)
-              <button wire:click.prevent="updateUser" class="btn btn-primary">Update</button>
-              <button wire:click.prevent="cancelUpdate" class="btn btn-secondary">Cancel</button>
-              @else
-              <button wire:click.prevent="addUserByManager" class="btn btn-primary">Add</button>
-              @endif
-
-          </form>
-          @else
-
-          @endif
-          @endforeach
-
+    <div class="archive-card mb-4">
+        <div class="archive-card-header">
+            <h5>
+                <i class="bi bi-person-plus me-2"></i>
+                @if($editMode)
+                    {{ __('archive.edit_user') }}
+                @elseif(Auth::user()->hasRole('Admin'))
+                    {{ __('archive.add_user') }}
+                @else
+                    {{ __('archive.add_employee') }}
+                @endif
+            </h5>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="page-title">
-
-    <div class="row">
-      <div class="col-xl-12 mb-30">
-        <div class="card card-statistics h-100">
-          <div class="card-body">
-            <div class="d-block d-md-flex justify-content-between">
-              <div class="d-block">
-                <h5 class="card-title pb-0 border-0 mt-3">Data Local</h5>
-              </div>
-              <div class="d-block d-md-flex clearfix sm-mt-20">
-
-
-
-                <div class="widget-search ml-0 clearfix">
-
-                </div>
-
-
-              </div>
-              <div>
-                {{-- <button wire:click="sear()" class="button button-border fs-2 btn-sm"><i
-                    class="fa fa-search"></i></button> --}}
-                {{-- <a class="button button-border fs-2   btn-sm" href="#"><i class="fa fa-search"></i>
-                </a> --}}
-              </div>
-
-            </div>
-            <div class="table-responsive mt-15">
-              <table class="table center-aligned-table mb-0">
-                <thead>
-                  <tr class="text-dark">
-                    <th>#</th>
-                    <th>Full Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Created At</th>
-                    <th>Updated At</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-
-
-                  @foreach ($users as $user )
-
-                      @if ($user->role_id == 1)
-
-                          @elseif(Auth::user()->id == $user->users->manager_id)
-                              
-                                      <tr>
-                                        <td>{{$num++}}</td>
-                                        <td>{{$user->users->name}}</td>
-                                        <td>{{$user->users->email}}</td>
-                                        <td>{{$user->role->name}}</td>
-                                        <td>{{$user->users->created_at}}</td>
-                                        <td> {{$user->users->updated_at}}</td>
-                                        <td>
-                                          <button class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#deleteModal"><i
-                                              class="fa fa-trash"></i></button>
-
-                                          <!-- Delete Modal -->
-                                          <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog"
-                                            aria-labelledby="deleteModalLabel" aria-hidden="true">
-                                            <div class="modal-dialog" role="document">
-                                              <div class="modal-content">
-                                                <div class="modal-header">
-                                                  <h5 class="modal-title" id="deleteModalLabel">Delete User</h5>
-                                                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                    <span aria-hidden="true">&times;</span>
-                                                  </button>
-                                                </div>
-                                                <div class="modal-body">
-                                                  Are you sure you want to delete this user?
-                                                </div>
-                                                <div class="modal-footer">
-                                                  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                                  <button wire:click='deleteUser({{$user->users->id}})' type="button"
-                                                    class="btn btn-danger">Delete</button>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </div>
-
-                                          <button wire:click="editUser({{$user->users->id}})" class="btn btn-outline-warning btn-sm"><i
-                                              class="fa fa-edit"></i></button>
-                                        </td>
-
-                                      </tr>
-                                      
+        <div class="archive-card-body">
+            @if(Auth::user()->hasRole('Admin'))
+                <form wire:submit.prevent="submitUserForm" wire:key="admin-user-form-{{ $editMode ? 'edit-'.$editUserId : 'add' }}">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">{{ __('archive.full_name') }}</label>
+                            <input wire:model="fullname" type="text" class="form-control">
+                            @error('fullname') <div class="text-danger small">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">{{ __('archive.email') }}</label>
+                            <input wire:model="email" type="email" class="form-control">
+                            @error('email') <div class="text-danger small">{{ $message }}</div> @enderror
+                        </div>
+                        @if(!$editMode)
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">{{ __('archive.password') }}</label>
+                            <input wire:model="password" type="password" class="form-control">
+                            @error('password') <div class="text-danger small">{{ $message }}</div> @enderror
+                        </div>
+                        @endif
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">{{ __('archive.role') }}</label>
+                            <select wire:model.live="roleSelected" class="form-select" @if($editMode) disabled @endif>
+                                <option value="">{{ __('archive.select_role') }}</option>
+                                @foreach ($roles as $role)
+                                    <option value="{{ $role->id }}">{{ archive_role_label($role->name) }}</option>
+                                @endforeach
+                            </select>
+                            @error('roleSelected') <div class="text-danger small">{{ $message }}</div> @enderror
+                        </div>
+                        @if ($showUserMode)
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">{{ __('archive.manager') }}</label>
+                            <select wire:model="selectManager" class="form-select" @if($editMode && $roleSelected !== '4') disabled @endif>
+                                <option value="">{{ __('archive.select_manager') }}</option>
+                                @foreach ($manager as $manage)
+                                    @if($manage->role_id == 3)
+                                        <option value="{{ $manage->users->id }}">{{ $manage->users->name }}</option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+                        @endif
+                        <div class="col-md-2 d-flex align-items-end gap-2">
+                            @if($editMode)
+                                <button type="submit" class="btn btn-archive-accent">{{ __('archive.update') }}</button>
+                                <button type="button" wire:click="cancelUpdate" class="btn btn-outline-secondary">{{ __('archive.cancel') }}</button>
                             @else
-                            @php 
-                              $roles = Auth::user()->roles;
-                            @endphp
-                            @foreach ($roles as $role)
-                              @if($role->name == 'Admin')
-                              <tr>
-                                <td>{{$num++}}</td>
-                                <td>{{$user->users->name}}</td>
-                                <td>{{$user->users->email}}</td>
-                                <td>{{$user->role->name}}</td>
-                                <td>{{$user->users->created_at}}</td>
-                                <td> {{$user->users->updated_at}}</td>
-                                <td>
-                                  <button class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#deleteModal"><i
-                                      class="fa fa-trash"></i></button>
-
-                                  <!-- Delete Modal -->
-                                  <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog"
-                                    aria-labelledby="deleteModalLabel" aria-hidden="true">
-                                    <div class="modal-dialog" role="document">
-                                      <div class="modal-content">
-                                        <div class="modal-header">
-                                          <h5 class="modal-title" id="deleteModalLabel">Delete User</h5>
-                                          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                          </button>
-                                        </div>
-                                        <div class="modal-body">
-                                          Are you sure you want to delete this user?
-                                        </div>
-                                        <div class="modal-footer">
-                                          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                          <button wire:click='deleteUser({{$user->users->id}})' type="button"
-                                            class="btn btn-danger">Delete</button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <button wire:click="editUser({{$user->users->id}})" class="btn btn-outline-warning btn-sm"><i
-                                      class="fa fa-edit"></i></button>
-                                </td>
-
-                              </tr>
-                              @endif
-                            @endforeach
-                                        
-                                 
-                      @endif
-
-                              
-
-                  @endforeach
-                </tbody>
-
-
-              </table>
-              <hr>
-              {{ $users->links() }}
-            </div>
-          </div>
+                                <button type="submit" class="btn btn-archive-accent w-100">{{ __('archive.add_user') }}</button>
+                            @endif
+                        </div>
+                    </div>
+                </form>
+            @elseif(Auth::user()->hasRole('Manager'))
+                <form wire:submit.prevent="submitUserForm" wire:key="manager-user-form-{{ $editMode ? 'edit-'.$editUserId : 'add' }}">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">{{ __('archive.employee_name') }}</label>
+                            <input wire:model="fullname_manager" type="text" class="form-control">
+                            @error('fullname_manager') <div class="text-danger small">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">{{ __('archive.email') }}</label>
+                            <input wire:model="email_manager" type="email" class="form-control">
+                            @error('email_manager') <div class="text-danger small">{{ $message }}</div> @enderror
+                        </div>
+                        @if(!$editMode)
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">{{ __('archive.password') }}</label>
+                            <input wire:model="password_manager" type="password" class="form-control">
+                            @error('password_manager') <div class="text-danger small">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-archive-accent w-100">{{ __('archive.add_employee') }}</button>
+                        </div>
+                        @else
+                        <div class="col-md-4 d-flex gap-2">
+                            <button type="submit" class="btn btn-archive-accent">{{ __('archive.update') }}</button>
+                            <button type="button" wire:click="cancelUpdate" class="btn btn-outline-secondary">{{ __('archive.cancel') }}</button>
+                        </div>
+                        @endif
+                    </div>
+                </form>
+            @endif
         </div>
-      </div>
-
-
-
     </div>
+
+    <div class="archive-card">
+        <div class="archive-card-header">
+            <h5><i class="bi bi-people me-2"></i>{{ __('archive.users_list') }}</h5>
+        </div>
+        <div class="archive-card-body p-0">
+            <div class="table-responsive">
+                <table class="table archive-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>{{ __('archive.full_name') }}</th>
+                            <th>{{ __('archive.email') }}</th>
+                            <th>{{ __('archive.role') }}</th>
+                            <th>{{ __('archive.manager') }}</th>
+                            <th>{{ __('archive.joined') }}</th>
+                            <th class="text-end">{{ __('archive.actions') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php $rowNum = 0; @endphp
+                        @foreach ($users as $user)
+                            @if ($user->role_id == 1) @continue @endif
+                            @if(Auth::user()->hasRole('Admin') || Auth::user()->id == $user->users->manager_id)
+                                @php $rowNum++; @endphp
+                                <tr wire:key="user-{{ $user->users->id }}">
+                                    <td>{{ $users->firstItem() + $rowNum - 1 }}</td>
+                                    <td class="fw-semibold">{{ $user->users->name }}</td>
+                                    <td>{{ $user->users->email }}</td>
+                                    <td><span class="badge text-bg-light border">{{ archive_role_label($user->role->name) }}</span></td>
+                                    <td>{{ $user->users->manager?->name ?? '—' }}</td>
+                                    <td>{{ $user->users->created_at->format('Y-m-d') }}</td>
+                                    <td class="text-end">
+                                        @can('update', $user->users)
+                                            <button wire:click="editUser({{ $user->users->id }})" class="btn btn-light btn-icon btn-sm" title="{{ __('archive.edit') }}">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        @endcan
+                                        @if(Auth::user()->hasRole('Admin'))
+                                            <button class="btn btn-outline-danger btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#deleteUser{{ $user->users->id }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            <div class="modal fade" id="deleteUser{{ $user->users->id }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">{{ __('archive.delete_user') }}</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <div class="modal-body">{{ __('archive.delete_user_confirm') }} <strong>{{ $user->users->name }}</strong>?</div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('archive.cancel') }}</button>
+                                                            <button wire:click="deleteUser({{ $user->users->id }})" type="button" class="btn btn-danger" data-bs-dismiss="modal">{{ __('archive.delete') }}</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endif
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-3 border-top">{{ $users->links() }}</div>
+        </div>
+    </div>
+</div>

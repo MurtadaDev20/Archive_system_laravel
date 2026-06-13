@@ -1,100 +1,92 @@
 <?php
+
 namespace App\Livewire;
 
-use App\Models\department;
-use App\Models\folder;
+use App\Models\Department;
 use App\Models\RoleUser;
-use App\Models\User;
+use App\Services\AuditLogger;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Rule;
 use Livewire\Component;
-use Illuminate\Support\Facades\Auth;
 use Livewire\WithPagination;
-use Livewire\WithoutUrlPagination;
-
 
 class DepartmentLivewire extends Component
 {
+    use AuthorizesRequests;
     use WithPagination;
+
     #[Rule('required|unique:departments,dep_name')]
     public $department;
-    public $user_id;
-    public $role_id;
-    public $departmentse;
-    public $departmentsPagenate;
-    public $manager_name;
+
     public $editMode = false;
     public $editDepartmentId;
     public $managerSelect;
 
-
     #[Rule('required|unique:departments,manager_id')]
     public $selectedManager;
-
-
 
     public function mount()
     {
         $this->managerSelect = RoleUser::with('users', 'role')->get();
     }
 
-
     public function addDepartment()
     {
+        $this->authorize('create', Department::class);
         $this->validate();
+
         $user = Auth::user();
+        $roleUser = RoleUser::where('user_id', $user->id)->first();
 
-        if ($user) {
-            $roleUser = RoleUser::where('user_id', $user->id)->first();
-            Department::create([
-                'dep_name' => $this->department,
-                'user_id' => $user->id,
-                'role_id' => $roleUser->role_id,
-                'manager_id' =>$this->selectedManager
-            ]);
+        $dept = Department::create([
+            'dep_name' => $this->department,
+            'user_id' => $user->id,
+            'role_id' => $roleUser?->role_id,
+            'manager_id' => $this->selectedManager,
+        ]);
 
-            toastr()->success('Data has been saved successfully!');
-
-            $this->reset('department');
-            $this->departmentse = Department::all();
-
-            // $this->emit('departmentAdded');
-        }
+        AuditLogger::log(
+            'department.create',
+            __('archive.audit_department_create', ['name' => $dept->dep_name]),
+            $dept,
+            ['name' => $dept->dep_name]
+        );
+        toastr()->success(__('archive.msg_department_created'));
+        $this->reset('department');
     }
 
-
-
-///////////////////////////////////////// Update //////////////////////////////
-
-    public function editDepartment($departmentId)
+    public function editDepartment(int $departmentId)
     {
-        $department = Department::find($departmentId);
-
+        $department = Department::findOrFail($departmentId);
+        $this->authorize('update', $department);
         $this->editMode = true;
         $this->editDepartmentId = $departmentId;
         $this->department = $department->dep_name;
-
-        // dd($department->manager_id);
     }
 
     public function updateDepartment()
     {
         $this->validate(['department' => 'required']);
+        $department = Department::findOrFail($this->editDepartmentId);
+        $this->authorize('update', $department);
 
-        $department = Department::find($this->editDepartmentId);
-        $department->dep_name = $this->department;
-         $department->manager_id = $this->selectedManager;
-        $department->save();
+        $department->update([
+            'dep_name' => $this->department,
+            'manager_id' => $this->selectedManager,
+        ]);
+
+        AuditLogger::log(
+            'department.update',
+            __('archive.audit_department_update', ['name' => $department->dep_name]),
+            $department,
+            ['name' => $department->dep_name]
+        );
+        toastr()->success(__('archive.msg_department_updated'));
 
         $this->editMode = false;
         $this->department = '';
-        $this->departmentse = Department::all();
     }
-
-    public function deleteDepartment($departmentId)
-    {
-        Department::find($departmentId)->delete();
-    }
-
 
     public function cancelUpdate()
     {
@@ -102,29 +94,32 @@ class DepartmentLivewire extends Component
         $this->department = '';
     }
 
-    public function DepartmentDelete($deptId)
+    public function DepartmentDelete(int $deptId)
     {
-        $dept = Department::find($deptId);
-        if ($dept) {
-            if ($dept->folders()->count() > 0) {
-                toastr()->error('Cannot delete Department. It contains a Folder.');
-                return redirect()->to(route('departments'));
+        $dept = Department::findOrFail($deptId);
+        $this->authorize('delete', $dept);
 
+        if ($dept->folders()->count() > 0) {
+            toastr()->error(__('archive.msg_department_has_folders'));
 
-            }
-            $dept->delete();
-            return redirect()->to(route('departments'));
+            return;
         }
+
+        AuditLogger::log(
+            'department.delete',
+            __('archive.audit_department_delete', ['name' => $dept->dep_name]),
+            $dept,
+            ['name' => $dept->dep_name]
+        );
+        $dept->delete();
+
+        return redirect()->route('departments');
     }
 
     public function render()
     {
-
-        //  dd($this->departments);
-        return view('livewire.department-livewire',[
-            'departments' => department::with('user', 'role','folders','files')->paginate(10),
+        return view('livewire.department-livewire', [
+            'departments' => Department::with(['user', 'folders', 'files', 'manager'])->paginate(8),
         ]);
     }
-
-
 }

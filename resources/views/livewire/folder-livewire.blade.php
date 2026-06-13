@@ -1,118 +1,82 @@
 <div>
-  @php
-    $roles = Auth::user()->roles;
-  @endphp
-  @foreach ($roles as $role )
-      @if ($role->name == 'Manager')
-      <div class="row">
-        <div class="col-md-12 mb-30">
-          <div class="card card-statistics h-100">
-            <div class="card-body">
-              <div class="card-body">
-                <h5 class="card-title">Add New Folder</h5>
-                <form>
-                  <div class="mb-3">
-                    <label class="form-label" for="exampleInputEmail1">Folder</label>
-                    <input wire:model="folder" type="text" class="form-control" aria-describedby="emailHelp"
-                      placeholder="IT">
-                    @error('folder') <span class="text-danger">{{ $message }}</span> @enderror
-                  </div>
-                  
-    
-                  @if($editMode)
-                  <button wire:click.prevent="updateFolder" class="btn btn-primary">Update</button>
-                  <button wire:click.prevent="cancelUpdate" class="btn btn-secondary">Cancel</button>
-                  @else
-                  <button wire:click.prevent="addFolder" class="btn btn-primary">Add</button>
-                  @endif
-                </form>
-              </div>
+    @if(Auth::user()->hasRole('Manager'))
+        <div class="archive-card mb-4">
+            <div class="archive-card-header">
+                <h5><i class="bi bi-folder-plus me-2"></i>{{ $editMode ? __('archive.edit_folder') : __('archive.create_folder') }}</h5>
             </div>
-          </div>
-        </div>
-      </div>
-      @endif
-  @endforeach
-    
-  
-    {{-- ==========================================================Folder
-    Detiles===================================================== --}}
-  
-    <div class="row text-center">
-      @foreach($folders as $folder)
-      @foreach ($roles as $role )
-      @if (Auth::user()->id == $folder->user_id || $role->name == 'Admin' ||Auth::user()->manager_id == $folder->user_id)
-      <div class="col-sm-3 col-lg-3 col-xl-2 mb-30">
-        <div class="card card-statistics h-100">
-          <div class="card-body">
-            <a href="{{route('manageFileShow',$folder->id)}}" class="text-dark float-end" data-bs-toggle="tooltip" data-bs-placement="left" title=""
-            data-bs-original-title="View project"><i class="fa fa-eye"></i> <span>Show File</span> </a>
-          
-            <h5 class="mt-15 mb-15 text-center" ><b>{{ $folder->folder_name }}</b></h5>
-            <div class="text-center"> Created By: {{ $folder->user->name }}</div>
-            
-            <div class="row">
-              <div class="col-12 col-sm-12 mt-30">
-                <b>Files</b>
-                <h4 class="text-danger mt-10">{{$folder->files->count()}}</h4>
-              </div>
-            </div>
-            @if (Auth::user()->id == $folder->user_id)
-
-            <div class="row">
-              <div class="col-12 col-sm-12 mt-2">
-                
-                <div class="card-body">
-                  <a wire:click.prevent="editFolder({{ $folder->id }})" class="button button-border x-small btn-sm"
-                    href="#">Edit  </a>
-
-                    <button class="button button-border x-small btn-sm" data-toggle="modal" data-target="#deleteModal">Delete</button>
-
-                  <!-- Delete Modal -->
-                  <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog"
-                    aria-labelledby="deleteModalLabel" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                      <div class="modal-content">
-                        <div class="modal-header">
-                          <h5 class="modal-title" id="deleteModalLabel">Delete User</h5>
-                          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                          </button>
+            <div class="archive-card-body">
+                <form wire:submit.prevent="{{ $editMode ? 'updateFolder' : 'addFolder' }}">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">{{ __('archive.folder_name') }}</label>
+                            <input wire:model="folder" type="text" class="form-control">
+                            @error('folder') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                         </div>
-                        <div class="modal-body">
-                          Are you sure you want to delete this Folder?
+                        <div class="col-md-4 d-flex gap-2">
+                            @if($editMode)
+                                <button type="submit" class="btn btn-archive-accent">{{ __('archive.update') }}</button>
+                                <button type="button" wire:click="cancelUpdate" class="btn btn-outline-secondary">{{ __('archive.cancel') }}</button>
+                            @else
+                                <button type="submit" class="btn btn-archive-accent w-100"><i class="bi bi-plus-lg me-1"></i>{{ __('archive.create') }}</button>
+                            @endif
                         </div>
-                        <div class="modal-footer">
-                          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                          <button wire:click='deleteFolder({{ $folder->id }})' type="button"
-                            class="btn btn-danger">Delete</button>
-                        </div>
-                      </div>
                     </div>
-                  </div>
-                  {{-- <a wire:click.prevent="confirmDelete()" class="button button-border x-small btn-sm"
-                    href="#">Delete </a> --}}
-                </div>
-                
-                
-              </div>
+                </form>
             </div>
-            @else
-
-            @endif
-          </div>
         </div>
-      </div>
-      
-      @endif
-      
-      @endforeach
-      @endforeach
-      
-    </div>
-    <div class="m-4">
-    {{$folders->links()}}
-    </div>
-  
-  
-  </div>
+    @endif
+
+    @if($folders->isEmpty())
+        <x-empty-state icon="bi-folder-x" :title="__('archive.no_folders')" :message="__('archive.no_folders_desc')" />
+    @else
+        <div class="row g-3">
+            @foreach($folders as $folder)
+                @if (Auth::user()->id == $folder->user_id || Auth::user()->hasRole('Admin') || Auth::user()->manager_id == $folder->user_id)
+                    <div class="col-md-6 col-xl-4" wire:key="folder-{{ $folder->id }}">
+                        <div class="folder-card">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="folder-card-icon"><i class="bi bi-folder2"></i></div>
+                                <a href="{{ route('manageFileShow', $folder->id) }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-eye me-1"></i>{{ __('archive.view_files') }}
+                                </a>
+                            </div>
+                            <h6 class="fw-bold mb-1">{{ $folder->folder_name }}</h6>
+                            <p class="small text-archive-muted mb-3">{{ __('archive.created_by') }}: {{ $folder->user->name }}</p>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span class="badge text-bg-light border">
+                                    <i class="bi bi-file-earmark me-1"></i>{{ $folder->files->count() }} {{ __('archive.files_count_label') }}
+                                </span>
+                                @if (Auth::user()->id == $folder->user_id)
+                                    <div class="d-flex gap-1">
+                                        <button wire:click="editFolder({{ $folder->id }})" class="btn btn-light btn-icon btn-sm" title="{{ __('archive.edit') }}">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-icon btn-sm" data-bs-toggle="modal" data-bs-target="#deleteFolder{{ $folder->id }}" title="{{ __('archive.delete') }}">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                    <div class="modal fade" id="deleteFolder{{ $folder->id }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">{{ __('archive.delete_folder') }}</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">{{ __('archive.delete_folder_confirm') }} <strong>{{ $folder->folder_name }}</strong>? {{ __('archive.cannot_undo') }}</div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('archive.cancel') }}</button>
+                                                    <button wire:click="deleteFolder({{ $folder->id }})" type="button" class="btn btn-danger" data-bs-dismiss="modal">{{ __('archive.delete') }}</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            @endforeach
+        </div>
+        <div class="mt-4">{{ $folders->links() }}</div>
+    @endif
+</div>

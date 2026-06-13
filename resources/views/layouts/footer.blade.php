@@ -1,18 +1,6 @@
-<!-- Footer opened -->
- {{-- <footer class="bg-white p-4">
-      <div class="row">
-        <div class="col-md-6">
-          <div class="text-center text-md-left">
-              <p class="mb-0"> &copy; Copyright <span id="copyright"> <script>document.getElementById('copyright').appendChild(document.createTextNode(new Date().getFullYear()))</script></span>. <a href="#"> Murtada </a> All Rights Reserved. </p>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <ul class="text-center text-md-right">
-            <li class="list-inline-item"><a href="#">Terms & Conditions </a> </li>
-            <li class="list-inline-item"><a href="#">API Use Policy </a> </li>
-            <li class="list-inline-item"><a href="#">Privacy Policy </a> </li>
-          </ul>
-        </div>
-      </div>
-    </footer> --}}
-<!-- Footer closed -->
+<footer class="px-4 py-3 border-top archive-footer text-archive-muted small">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+        <span>&copy; {{ date('Y') }} {{ __('archive.footer_copyright') }}</span>
+        <span>{{ __('archive.version') }} 2.0</span>
+    </div>
+</footer>

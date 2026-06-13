@@ -1,51 +1,34 @@
 @extends('layouts.master')
-@section('css')
-@livewireStyles
-@section('title')
-All File
-@stop
-@endsection
+@section('title', __('archive.preview_title') . ' — ' . ($file->file_name ?? ''))
 @section('page-header')
-<!-- breadcrumb -->
-<div class="page-title">
-    <div class="row">
-        <div class="col-sm-6">
-            <h4 class="mb-0"> View File </h4>
-        </div>
-        <div class="col-sm-6">
-            <ol class="breadcrumb pt-0 pr-0 float-left float-sm-right ">
-                <li class="breadcrumb-item"><a href="#" class="default-color">Home</a></li>
-                <li class="breadcrumb-item active"><a href="{{route('manageFile')}}">Manage Files</a> </li>
-            </ol>
-        </div>
-    </div>
-</div>
-<!-- breadcrumb -->
+    @include('layouts.partials.page-header', [
+        'title' => __('archive.preview_title'),
+        'subtitle' => $file->file_name . ' — ' . $file->code,
+        'breadcrumbs' => [
+            ['label' => __('archive.home'), 'url' => $homeRoute],
+            ['label' => __('archive.documents'), 'url' => route('manageFile')],
+            ['label' => __('archive.preview_title')],
+        ],
+    ])
 @endsection
 @section('content')
-<!-- row -->
-
-
-<div class="row">
-    <div class="col-md-12 mb-30">
-        <div class="card card-statistics h-100">
-            <div class="card-body">
-                <div class="row">
-                    {{-- <div class="col-md-2"></div> --}}
-                    <div class="col-md-12">
-                        <iframe style="height: 100vh ; width:100%" src="{{ $path }}" frameborder="0"></iframe>
-                    </div>
-                </div>
-                
+    <div class="archive-card">
+        <div class="archive-card-header">
+            <div>
+                <h5 class="mb-1">{{ $file->file_name }}</h5>
+                <small class="text-archive-muted">{{ __('archive.code') }}: {{ $file->code }} &middot; {{ __('archive.status') }}: {{ archive_status_label($file->status_id) }}</small>
+            </div>
+            <div class="quick-actions">
+                <a href="{{ route('streamFile', $file) }}" class="btn btn-outline-secondary btn-sm" target="_blank">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>{{ __('archive.open_in_tab') }}
+                </a>
+                <a href="{{ route('manageFile') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-right me-1"></i>{{ __('archive.back') }}
+                </a>
             </div>
         </div>
+        <div class="archive-card-body p-2">
+            <iframe class="file-preview-frame" src="{{ $streamUrl }}" title="{{ __('archive.preview_title') }}: {{ $file->file_name }}"></iframe>
+        </div>
     </div>
-</div>
-
-    
-            
-<!-- row closed -->
-@endsection
-@section('js')
-@livewireScripts
 @endsection

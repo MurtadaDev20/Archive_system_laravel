@@ -2,31 +2,26 @@
 
 namespace App\Http\Middleware;
 
-use Closure;
 use App\Providers\RouteServiceProvider;
-use Illuminate\Support\Facades\Auth;
+use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckRole
 {
-    
-    public function handle($request, Closure $next, ...$roles)
+    public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        $user = Auth::user();
-    
-        if ($user) {
-            foreach ($user->roles as $role) {
-                if ($role->name == 'Admin') {
-                    return $next($request);
-                } else{
-                    return redirect(RouteServiceProvider::ALLUSERS);
-                }
-            }
-            return redirect('/'); 
+        if (! Auth::check()) {
+            return redirect()->route('login');
         }
-        
-        
-    
+
+        $allowedRoles = ! empty($roles) ? $roles : ['Admin', 'Super Admin'];
+
+        if (Auth::user()->hasAnyRole($allowedRoles)) {
+            return $next($request);
+        }
+
+        return redirect(RouteServiceProvider::ALLUSERS);
     }
 }

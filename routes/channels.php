@@ -16,3 +16,12 @@ use Illuminate\Support\Facades\Broadcast;
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
+
+Broadcast::channel('team.{managerId}', function ($user, $managerId) {
+    if ($user->hasRole('Admin')) {
+        return true;
+    }
+
+    return (int) $user->id === (int) $managerId
+        || (int) $user->manager_id === (int) $managerId;
+});

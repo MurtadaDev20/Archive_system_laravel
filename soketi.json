@@ -1,0 +1,14 @@
+{
+  "debug": true,
+  "port": 6001,
+  "appManager.array.apps": [
+    {
+      "id": "archive-app",
+      "key": "archive-local-key",
+      "secret": "archive-local-secret",
+      "enableClientMessages": false,
+      "enabled": true,
+      "maxConnections": -1
+    }
+  ]
+}

@@ -23,6 +23,8 @@ class DatabaseSeeder extends Seeder
 
         $this->call(RolesTableSeeder::class);
         $this->call(UsersTableSeeder::class);
-        $this->call([StatusesTableSeeder::class,]);
+        $this->call(StatusesTableSeeder::class);
+        $this->call(SpatiePermissionSeeder::class);
+        $this->call(EdmsTaxonomySeeder::class);
     }
 }

@@ -1,0 +1,36 @@
+<?php
+
+namespace App\Policies;
+
+use App\Models\User;
+
+class UserPolicy
+{
+    public function create(User $user): bool
+    {
+        return $user->hasAnyRole(['Admin', 'Manager']);
+    }
+
+    public function update(User $user, User $model): bool
+    {
+        if ($user->hasRole('Admin')) {
+            return $user->id !== $model->id;
+        }
+
+        if ($user->id === $model->id) {
+            return true;
+        }
+
+        return $user->hasRole('Manager') && (int) $model->manager_id === $user->id;
+    }
+
+    public function delete(User $user, User $model): bool
+    {
+        return $user->hasRole('Admin') && $user->id !== $model->id;
+    }
+
+    public function createEmployee(User $user): bool
+    {
+        return $user->hasRole('Manager');
+    }
+}

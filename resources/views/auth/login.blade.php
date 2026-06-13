@@ -1,90 +1,70 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="ar" dir="rtl" data-bs-theme="light">
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="keywords" content="HTML5 Template" />
-  <meta name="description" content="Webmin - Bootstrap 4 & Angular 5 Admin Dashboard Template" />
-  <meta name="author" content="potenzaglobalsolutions.com" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  @include('layouts.head')
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ __('archive.sign_in') }} — {{ __('archive.app_name') }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="{{ asset('assets/css/archive-enterprise.css') }}" rel="stylesheet">
 </head>
-
 <body>
-
-
-  <section class="height-100vh d-flex align-items-center page-section-ptb login"
-    style="background-image: url(images/login-bg.jpg);">
-    <div class="container">
-      <div class="row justify-content-center g-0 vertical-align">
-        <div class="col-lg-4 col-md-6 login-fancy-bg bg" style="background-image: url(images/login-inner-bg.jpg);">
-          <div class="login-fancy">
-            <h2 class="text-white mb-20">Hello world!</h2>
-            {{-- <p class="mb-20 text-white">Create tailor-cut websites with the exclusive multi-purpose responsive template
-              along with powerful features.</p> --}}
-            <ul class="list-unstyled  pos-bot pb-30">
-              <li class="list-inline-item"><a class="text-white" href="#"> Terms of Use</a> </li>
-              <li class="list-inline-item"><a class="text-white" href="#"> Privacy Policy</a></li>
-            </ul>
-          </div>
-        </div>
-        <div class="col-lg-4 col-md-6 bg-white">
-          <div class="login-fancy pb-40 clearfix">
-            <h3 class="mb-30">Sign In To Admin</h3>
-            <form method="POST" action="{{ route('login') }}">
-              <div class="section-field mb-20">
-
-                @csrf
-
-                <label class="mb-10" for="name">Email </label>
-                <input id="email" type="email" class="form-control @error('email') is-invalid @enderror" name="email"
-                  value="{{ old('email') }}" required autocomplete="email" autofocus>
-                @error('email')
-                <span class="invalid-feedback" role="alert">
-                  <strong>{{ $message }}</strong>
-                </span>
-                @enderror
-              </div>
-
-              <div class="section-field mb-20">
-                <label class="mb-10" for="Password">Password* </label>
-                <input id="password" type="password" class="form-control @error('password') is-invalid @enderror" name="password" required autocomplete="current-password">
-
-                                @error('password')
-                                    <span class="invalid-feedback" role="alert">
-                                        <strong>{{ $message }}</strong>
-                                    </span>
-                                @enderror
-              </div>
-
-              <div class="section-field">
-                <div class="remember-checkbox mb-30">
-                  <input class="form-check-input" type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
-
-                  <label for="two"> Remember me</label>
-                  @if (Route::has('password.request'))
-                  <a class="float-end" href="{{ route('password.request') }}">
-                      {{ __('Forgot Your Password?') }}
-                  </a>
-              @endif
+    <div class="login-page">
+        <div class="col-lg-6 d-none d-lg-flex login-brand-panel">
+            <div>
+                <div class="mb-4">
+                    <i class="bi bi-archive fs-1"></i>
                 </div>
-              </div>
-              <button type="submit" class="button">
-                {{ __('Login') }}
-            </button>
-
-           
-          </div>
-          </form>
-          {{-- <p class="mt-20 mb-0">Don't have an account? <a href="register.html"> Create one here</a></p> --}}
+                <h1 class="h2 fw-bold mb-3">{{ __('archive.login_title') }}</h1>
+                <p class="opacity-75 mb-4">{{ __('archive.login_desc') }}</p>
+                <ul class="list-unstyled opacity-75">
+                    <li class="mb-2"><i class="bi bi-check-circle me-2"></i>{{ __('archive.login_feature_rbac') }}</li>
+                    <li class="mb-2"><i class="bi bi-check-circle me-2"></i>{{ __('archive.login_feature_workflow') }}</li>
+                    <li class="mb-2"><i class="bi bi-check-circle me-2"></i>{{ __('archive.login_feature_audit') }}</li>
+                </ul>
+            </div>
         </div>
-      </div>
+        <div class="col-lg-6 login-form-panel">
+            <div class="login-form-card">
+                <div class="text-center mb-4">
+                    <h2 class="h4 fw-bold mb-1">{{ __('archive.welcome_back') }}</h2>
+                    <p class="text-archive-muted mb-0">{{ __('archive.sign_in_subtitle') }}</p>
+                </div>
+
+                <form method="POST" action="{{ route('login') }}">
+                    @csrf
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-semibold">{{ __('archive.email_address') }}</label>
+                        <input id="email" type="email" class="form-control @error('email') is-invalid @enderror"
+                               name="email" value="{{ old('email') }}" required autofocus>
+                        @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label fw-semibold">{{ __('archive.password') }}</label>
+                        <input id="password" type="password" class="form-control @error('password') is-invalid @enderror"
+                               name="password" required>
+                        @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
+                            <label class="form-check-label" for="remember">{{ __('archive.remember_me') }}</label>
+                        </div>
+                        @if (Route::has('password.request'))
+                            <a href="{{ route('password.request') }}" class="small">{{ __('archive.forgot_password') }}</a>
+                        @endif
+                    </div>
+
+                    <button type="submit" class="btn btn-archive-accent w-100 py-2">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> {{ __('archive.sign_in') }}
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
-    </div>
-  </section>
-
-
-  @section('js')
-
-  @endsection
+</body>
+</html>

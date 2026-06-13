@@ -1,54 +1,51 @@
 <?php
 
-use App\Http\Controllers\test\testcontroller;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ViewFileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
 
-Route::get('/', function () {
-    return redirect('/admin');
-});
-
-Route::get('/test-pusher', function () {
-    return view('pusher_test');
-});
+Route::get('/', fn () => redirect('/admin'));
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth']], function () {
 
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('role:Admin');
+    Route::get('/workspace', [DashboardController::class, 'workspace'])->name('workspace');
 
-    Route::get('/dashboard', function () {return view('layouts.dashboard'); })->name('dashboard')->middleware('role');
-    Route::get('/', function () {return view('layouts.dashboard'); })->middleware('role');
+    Route::get('/', function () {
+        return Auth::user()->hasRole('Admin')
+            ? redirect()->route('dashboard')
+            : redirect()->route('workspace');
+    });
 
-    //Main
-    Route::get('/master', function () {return view('layouts.master'); });
-    //Department
-    Route::get('/department', function () {return view('layouts.admin.department'); })->name('departments');
-    //Folder
-    Route::get('/folders', function () {return view('layouts.admin.folder'); })->name('folders');
+    Route::middleware('role:Admin')->group(function () {
+        Route::view('/department', 'layouts.admin.department')->name('departments');
+        Route::view('/taxonomy', 'layouts.admin.taxonomy')->name('taxonomy');
+    });
 
-    //file
-    Route::get('/add-file', function () {return view('layouts.admin.file'); })->name('addFile');
-    Route::get('/manage-file', function () { return view('layouts.admin.manageFile'); })->name('manageFile');
-    Route::get('/manage-file/{folder_id}', function () {return view('layouts.admin.manageFile'); })->name('manageFileShow');
-    Route::get('/view-file/{file}', [ViewFileController::class,'view'])->name('viewFile');
+    Route::middleware('role:Admin,Manager')->group(function () {
+        Route::view('/all-users', 'layouts.admin.allUsers')->name('allUsers');
+    });
 
-    //Users
-    Route::get('/all-users', function () {return view('layouts.admin.allUsers');})->name('allUsers');
+    Route::view('/folders', 'layouts.admin.folder')->name('folders');
+    Route::view('/add-file', 'layouts.admin.file')->name('addFile')->middleware('role:Manager,Employee');
+    Route::view('/manage-file', 'layouts.admin.manageFile')->name('manageFile');
+    Route::view('/manage-file/{folder_id}', 'layouts.admin.manageFile')->name('manageFileShow');
 
-    Route::get('/test', [testcontroller::class, 'index']);
+    Route::get('/documents/{documentId}', fn (int $documentId) => view('layouts.admin.documentShow', compact('documentId')))
+        ->name('document.show')
+        ->whereNumber('documentId');
+
+    Route::get('/documents/{file}/qr', [ViewFileController::class, 'qr'])
+        ->name('document.qr')
+        ->whereNumber('file');
+
+    Route::get('/documents/{file}/qr/print', [ViewFileController::class, 'qrPrint'])
+        ->name('document.qr.print')
+        ->whereNumber('file');
+
+    Route::get('/view-file/{file}', [ViewFileController::class, 'view'])->name('viewFile');
+    Route::get('/stream-file/{file}', [ViewFileController::class, 'stream'])->name('streamFile');
 });
 
-
-
-
-Auth::routes();
+Auth::routes(['register' => false]);

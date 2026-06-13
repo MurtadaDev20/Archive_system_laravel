@@ -1,232 +1,282 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('layouts.master')
 
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="keywords" content="HTML5 Template" />
-    <meta name="description" content="Webmin - Bootstrap 4 & Angular 5 Admin Dashboard Template" />
-    <meta name="author" content="potenzaglobalsolutions.com" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-    @include('layouts.head')
-</head>
+@section('title', __('archive.dashboard') . ' — ' . __('archive.app_name'))
 
-<body>
+@section('page-header')
+    @include('layouts.partials.page-header', [
+        'title' => __('archive.dashboard'),
+        'subtitle' => __('archive.dashboard_subtitle'),
+        'breadcrumbs' => [
+            ['label' => __('archive.home'), 'url' => route('dashboard')],
+            ['label' => __('archive.dashboard')],
+        ],
+    ])
+@endsection
 
-    <div class="wrapper">
+@section('content')
+    <div class="quick-actions mb-4">
+        <a href="{{ route('manageFile') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-files me-1"></i>{{ __('archive.manage_documents') }}</a>
+        <a href="{{ route('departments') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-building me-1"></i>{{ __('archive.departments') }}</a>
+        <a href="{{ route('taxonomy') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-sliders me-1"></i>{{ __('archive.manage_taxonomy') }}</a>
+    </div>
 
-        <!--=================================
- preloader -->
-
-        <div id="pre-loader">
-            <img src="assets/images/pre-loader/loader-01.svg" alt="">
+    {{-- KPI Row 1: Documents --}}
+    <div class="row g-3 mb-4">
+        <div class="col-xl-2 col-md-4 col-6">
+            <x-stat-card :label="__('archive.documents')" :value="$stats['files']" icon="bi-file-earmark-text" variant="primary" :footer="__('archive.total_files')" />
         </div>
-        @php
-        $disk = Storage::disk('local');
+        <div class="col-xl-2 col-md-4 col-6">
+            <x-stat-card :label="__('archive.new_documents')" :value="$stats['newThisMonth']" icon="bi-file-earmark-plus" variant="accent" :footer="__('archive.this_month')" />
+        </div>
+        <div class="col-xl-2 col-md-4 col-6">
+            <x-stat-card :label="__('archive.archived_documents')" :value="$stats['archived']" icon="bi-archive" variant="secondary" :footer="__('archive.status_archived')" />
+        </div>
+        <div class="col-xl-2 col-md-4 col-6">
+            <x-stat-card :label="__('archive.expired_documents')" :value="$stats['expired']" icon="bi-calendar-x" variant="danger" :footer="__('archive.status_expired')" />
+        </div>
+        <div class="col-xl-2 col-md-4 col-6">
+            <x-stat-card :label="__('archive.pending_approval')" :value="$stats['pending']" icon="bi-hourglass-split" variant="warning" :footer="__('archive.awaiting_review')" />
+        </div>
+        <div class="col-xl-2 col-md-4 col-6">
+            <x-stat-card :label="__('archive.approved')" :value="$stats['approved']" icon="bi-check-circle" variant="accent" :footer="__('archive.successfully_archived')" />
+        </div>
+    </div>
 
-        $path = storage_path('app');
-
-        $totalSpace = disk_total_space($path);
-        $freeSpace = disk_free_space($path);
-        $usedSpace = $totalSpace - $freeSpace;
-
-        $totalSpaceGB = $totalSpace / (1024 * 1024 * 1024);
-        $freeSpaceGB = $freeSpace / (1024 * 1024 * 1024);
-        $usedSpaceGB = $usedSpace / (1024 * 1024 * 1024);
-
-        $formattedtotalSpace = number_format($totalSpaceGB, 0) . '-GB';
-        $formattedfreeSpace = number_format($freeSpaceGB, 0) . '-GB';
-        $formattedusedSpace = number_format($usedSpaceGB, 0) . '-GB';
-        @endphp
-        <!--=================================
- preloader -->
-
-        @include('layouts.main-header')
-
-        @include('layouts.main-sidebar')
-
-        <!--=================================
- Main content -->
-        <!-- main-content -->
-        <div class="content-wrapper">
-            <div class="page-title">
-                <div class="row">
-                    <div class="col-sm-6">
-                        <h4 class="mb-0">
-                            <livewire:admin /department-livewire>
-                        </h4>
-                    </div>
-                    <div class="col-sm-6">
-                        <ol class="breadcrumb pt-0 pr-0 float-left float-sm-right">
-                        </ol>
-                    </div>
+    {{-- Charts --}}
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4">
+            <div class="archive-card h-100">
+                <div class="archive-card-header">
+                    <h5><i class="bi bi-pie-chart me-2"></i>{{ __('archive.chart_by_department') }}</h5>
+                </div>
+                <div class="archive-card-body">
+                    <canvas id="chartByDepartment" height="220"></canvas>
                 </div>
             </div>
-            <!-- widgets -->
-            <div class="row">
-                <div class="col-xl-3 col-lg-6 col-md-6 mb-30">
-                    <div class="card card-statistics h-100">
-                        <div class="card-body">
-                            <div class="clearfix">
-                                <div class="float-left">
-                                    <span class="text-primary">
-                                        <i class="fa fa-user-o highlight-icon" aria-hidden="true"></i>
-                                    </span>
-                                </div>
-                                <div class="float-right text-right">
-                                    <p class="card-text text-dark">Users</p>
-                                    <h4>{{App\Models\User::count()}}</h4>
-                                </div>
-                            </div>
-                            <p class="text-muted pt-3 mb-0 mt-2 border-top">
-                                <i class="fa fa-exclamation-circle mr-1" aria-hidden="true"></i> 81% lower
-                                growth
-                            </p>
-                        </div>
-                    </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="archive-card h-100">
+                <div class="archive-card-header">
+                    <h5><i class="bi bi-bar-chart me-2"></i>{{ __('archive.chart_by_month') }}</h5>
                 </div>
-                <div class="col-xl-3 col-lg-6 col-md-6 mb-30">
-                    <div class="card card-statistics h-100">
-                        <div class="card-body">
-                            <div class="clearfix">
-                                <div class="float-left">
-                                    <span class="text-success">
-                                        <i class="fa fa-sitemap highlight-icon" aria-hidden="true"></i>
-                                    </span>
-                                </div>
-                                <div class="float-right text-right">
-                                    <p class="card-text text-dark">Departments</p>
-                                    <h4>{{App\Models\department::count()}}</h4>
-                                </div>
-                            </div>
-                            <p class="text-muted pt-3 mb-0 mt-2 border-top">
-                                <i class="fa fa-bookmark-o mr-1" aria-hidden="true"></i> Total sales
-                            </p>
-                        </div>
-                    </div>
+                <div class="archive-card-body">
+                    <canvas id="chartByMonth" height="220"></canvas>
                 </div>
-                <div class="col-xl-3 col-lg-6 col-md-6 mb-30">
-                    <div class="card card-statistics h-100">
-                        <div class="card-body">
-                            <div class="clearfix">
-                                <div class="float-left">
-                                    <span class="text-warning ">
-                                        <i class="fa fa-folder highlight-icon" aria-hidden="true"></i>
-                                    </span>
-                                </div>
-                                <div class="float-right text-right">
-                                    <p class="card-text text-dark">Folders</p>
-                                    <h4>{{App\Models\folder::count()}} </h4>
-                                </div>
-                            </div>
-                            <p class="text-muted pt-3 mb-0 mt-2 border-top">
-                                <i class="fa fa-calendar mr-1" aria-hidden="true"></i> Sales Per Week
-                            </p>
-                        </div>
-                    </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="archive-card h-100">
+                <div class="archive-card-header">
+                    <h5><i class="bi bi-graph-up-arrow me-2"></i>{{ __('archive.chart_storage_growth') }}</h5>
                 </div>
-                <div class="col-xl-3 col-lg-6 col-md-6 mb-30">
-                    <div class="card card-statistics h-100">
-                        <div class="card-body">
-                            <div class="clearfix">
-                                <div class="float-left">
-                                    <span class="text-danger">
-                                        <i class="fa fa-file-pdf-o highlight-icon" aria-hidden="true"></i>
-                                    </span>
-                                </div>
-                                <div class="float-right text-right">
-                                    <p class="card-text text-dark">Files</p>
-                                    <h4>{{App\Models\file::count()}}</h4>
-                                </div>
-                            </div>
-                            <p class="text-muted pt-3 mb-0 mt-2 border-top">
-                                <i class="fa fa-repeat mr-1" aria-hidden="true"></i> Just Updated
-                            </p>
-                        </div>
-                    </div>
+                <div class="archive-card-body">
+                    <canvas id="chartStorageGrowth" height="220"></canvas>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="col-xl-3 col-lg-6 col-md-6 mb-30">
-                    <div class="card card-statistics h-100">
-                        <div class="card-body">
-                            <div class="clearfix">
-                                <div class="float-left">
-                                    <span class="text-danger">
-                                        <i class="fa fa-area-chart highlight-icon"></i>
-                                    </span>
-                                </div>
-                                <div class="float-right text-right">
-                                    <p class="card-text text-dark">Total Space</p>
-                                    <h4>{{$formattedtotalSpace}}</h4>
-                                </div>
-                            </div>
-                            <p class="text-muted pt-3 mb-0 mt-2 border-top">
-                                <i class="fa fa-repeat mr-1" aria-hidden="true"></i> Just Updated
-                            </p>
-                        </div>
-                    </div>
+    {{-- Storage + Activity --}}
+    <div class="row g-3 mb-4">
+        <div class="col-lg-5">
+            <div class="archive-card h-100">
+                <div class="archive-card-header">
+                    <h5><i class="bi bi-hdd me-2"></i>{{ __('archive.storage_usage') }}</h5>
                 </div>
-                <div class="col-xl-3 col-lg-6 col-md-6 mb-30">
-                    <div class="card card-statistics h-100">
-                        <div class="card-body">
-                            <div class="clearfix">
-                                <div class="float-left">
-                                    <span class="text-danger">
-                                        <i class="fa fa-code highlight-icon" aria-hidden="true"></i>
-                                    </span>
-                                </div>
-                                <div class="float-right text-right">
-                                    <p class="card-text text-dark">Free space</p>
-                                    <h4>{{$formattedfreeSpace}}</h4>
-                                </div>
-                            </div>
-                            <p class="text-muted pt-3 mb-0 mt-2 border-top">
-                                <i class="fa fa-repeat mr-1" aria-hidden="true"></i> Just Updated
-                            </p>
-                        </div>
+                <div class="archive-card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-archive-muted">{{ __('archive.used') }}</span>
+                        <strong>{{ $stats['usedSpaceGb'] }} GB / {{ $stats['totalSpaceGb'] }} GB</strong>
                     </div>
-                </div>
-                <div class="col-xl-3 col-lg-6 col-md-6 mb-30">
-                    <div class="card card-statistics h-100">
-                        <div class="card-body">
-                            <div class="clearfix">
-                                <div class="float-left">
-                                    <span class="text-secondary">
-                                        <i class="fa fa-code-fork highlight-icon" aria-hidden="true"></i>
-                                    </span>
-                                </div>
-                                <div class="float-right text-right">
-                                    <p class="card-text text-dark">Used Spase</p>
-                                    <h4>{{$formattedusedSpace}}</h4>
-                                </div>
+                    <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ $stats['usedPercent'] }}%"></div>
+                    </div>
+                    <div class="row g-2 text-center">
+                        <div class="col-4">
+                            <div class="dept-stat">
+                                <div class="value">{{ $stats['totalSpaceGb'] }}</div>
+                                <div class="label">{{ __('archive.total_gb') }}</div>
                             </div>
-                            <p class="text-muted pt-3 mb-0 mt-2 border-top">
-                                <i class="fa fa-repeat mr-1" aria-hidden="true"></i> Just Updated
-                            </p>
+                        </div>
+                        <div class="col-4">
+                            <div class="dept-stat">
+                                <div class="value text-success">{{ $stats['freeSpaceGb'] }}</div>
+                                <div class="label">{{ __('archive.free_gb') }}</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="dept-stat">
+                                <div class="value">{{ $stats['usedPercent'] }}%</div>
+                                <div class="label">{{ __('archive.used_percent') }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- Orders Status widgets-->
-
-            <!--=================================
- wrapper -->
-
-            <!--=================================
- footer -->
-
-            @include('layouts.footer')
-        </div><!-- main content wrapper end-->
+        </div>
+        <div class="col-lg-7">
+            <div class="archive-card h-100">
+                <div class="archive-card-header">
+                    <h5><i class="bi bi-clock-history me-2"></i>{{ __('archive.recent_activity') }}</h5>
+                    <span class="badge text-bg-light border">{{ __('archive.audit_log') }}</span>
+                </div>
+                <div class="archive-card-body">
+                    @if($recentActivity->isEmpty())
+                        <x-empty-state icon="bi-activity" :title="__('archive.no_activity')" :message="__('archive.no_activity_desc')" />
+                    @else
+                        <ul class="activity-timeline">
+                            @foreach($recentActivity as $log)
+                                <li>
+                                    <div class="activity-icon"><i class="bi bi-dot"></i></div>
+                                    <div class="activity-content">
+                                        <div class="activity-title">{{ archive_audit_description($log) }}</div>
+                                        <div class="activity-meta">
+                                            {{ $log->user?->name ?? __('archive.system') }}
+                                            &middot; {{ $log->created_at->diffForHumans() }}
+                                        </div>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            </div>
+        </div>
     </div>
+
+    {{-- Widgets --}}
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="archive-card h-100">
+                <div class="archive-card-header">
+                    <h5><i class="bi bi-file-earmark me-2"></i>{{ __('archive.recent_documents') }}</h5>
+                    <a href="{{ route('manageFile') }}" class="btn btn-sm btn-outline-secondary">{{ __('archive.view_all') }}</a>
+                </div>
+                <div class="archive-card-body p-0">
+                    @if($recentDocuments->isEmpty())
+                        <div class="p-4"><x-empty-state icon="bi-file-earmark" :title="__('archive.no_documents')" /></div>
+                    @else
+                        <div class="list-group list-group-flush">
+                            @foreach($recentDocuments as $doc)
+                                <a href="{{ route('document.show', $doc) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold">{{ $doc->file_name }}</div>
+                                        <small class="text-archive-muted">{{ $doc->document_number ?? $doc->code }} &middot; {{ $doc->user?->name }}</small>
+                                    </div>
+                                    <span class="badge text-bg-light border">{{ archive_status_label($doc->status_id) }}</span>
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="archive-card h-100">
+                <div class="archive-card-header">
+                    <h5><i class="bi bi-check2-square me-2"></i>{{ __('archive.pending_approvals') }}</h5>
+                </div>
+                <div class="archive-card-body p-0">
+                    @if($pendingApprovals->isEmpty())
+                        <div class="p-4 text-center text-archive-muted"><i class="bi bi-check-circle fs-3 d-block mb-2"></i>{{ __('archive.no_pending') }}</div>
+                    @else
+                        <div class="list-group list-group-flush">
+                            @foreach($pendingApprovals as $doc)
+                                <a href="{{ route('document.show', $doc) }}" class="list-group-item list-group-item-action">
+                                    <div class="fw-semibold">{{ $doc->file_name }}</div>
+                                    <small class="text-archive-muted">{{ $doc->folder?->folder_name }} &middot; {{ $doc->created_at->diffForHumans() }}</small>
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="archive-card">
+                <div class="archive-card-header">
+                    <h5><i class="bi bi-exclamation-triangle me-2 text-warning"></i>{{ __('archive.expiring_soon') }}</h5>
+                </div>
+                <div class="archive-card-body p-0">
+                    @if($expiringDocuments->isEmpty())
+                        <div class="p-4 text-center text-archive-muted">{{ __('archive.no_expiring') }}</div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table archive-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>{{ __('archive.document') }}</th>
+                                        <th>{{ __('archive.department') }}</th>
+                                        <th>{{ __('archive.expiry_date') }}</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($expiringDocuments as $doc)
+                                        <tr>
+                                            <td>{{ $doc->file_name }}</td>
+                                            <td>{{ $doc->department?->dep_name ?? '—' }}</td>
+                                            <td>{{ $doc->expiry_date?->format('Y-m-d') }}</td>
+                                            <td class="text-end">
+                                                <a href="{{ route('document.show', $doc) }}" class="btn btn-sm btn-outline-secondary">{{ __('archive.preview') }}</a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
     </div>
-    </div>
+@endsection
 
-    <!--=================================
- footer -->
+@section('js')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const deptLabels = @json($byDepartment->pluck('label'));
+    const deptValues = @json($byDepartment->pluck('value'));
+    const monthLabels = @json($byMonth->pluck('month'));
+    const monthValues = @json($byMonth->pluck('total'));
+    const storageLabels = @json($storageGrowth->pluck('month')->values());
+    const storageValues = @json($storageGrowthMb);
 
-    @include('layouts.footer-scripts')
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--archive-accent').trim() || '#198754';
 
-</body>
+    if (document.getElementById('chartByDepartment')) {
+        new Chart(document.getElementById('chartByDepartment'), {
+            type: 'doughnut',
+            data: {
+                labels: deptLabels,
+                datasets: [{ data: deptValues, backgroundColor: ['#198754','#0d6efd','#ffc107','#dc3545','#6c757d','#20c997'] }]
+            },
+            options: { plugins: { legend: { position: 'bottom', rtl: true } }, maintainAspectRatio: false }
+        });
+    }
 
-</html>
+    if (document.getElementById('chartByMonth')) {
+        new Chart(document.getElementById('chartByMonth'), {
+            type: 'bar',
+            data: {
+                labels: monthLabels,
+                datasets: [{ label: '{{ __('archive.documents') }}', data: monthValues, backgroundColor: accent }]
+            },
+            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } }, maintainAspectRatio: false }
+        });
+    }
 
+    if (document.getElementById('chartStorageGrowth')) {
+        new Chart(document.getElementById('chartStorageGrowth'), {
+            type: 'line',
+            data: {
+                labels: storageLabels,
+                datasets: [{ label: 'MB', data: storageValues, borderColor: accent, tension: 0.3, fill: false }]
+            },
+            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } }, maintainAspectRatio: false }
+        });
+    }
+});
+</script>
+@endsection

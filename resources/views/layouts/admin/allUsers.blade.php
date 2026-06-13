@@ -1,36 +1,15 @@
 @extends('layouts.master')
-@section('css')
-@livewireStyles
-@section('title')
-    Users
-@stop
-@endsection
+@section('title', __('archive.users_management') . ' — ' . __('archive.app_name'))
 @section('page-header')
-<!-- breadcrumb -->
-<div class="page-title">
-    <div class="row">
-        <div class="col-sm-6">
-            <h4 class="mb-0"> Users </h4>
-        </div>
-        <div class="col-sm-6">
-            <ol class="breadcrumb pt-0 pr-0 float-left float-sm-right ">
-                <li class="breadcrumb-item"><a href="#" class="default-color">Home</a></li>
-                <li class="breadcrumb-item active">Users</li>
-            </ol>
-        </div>
-    </div>
-</div>
-<!-- breadcrumb -->
+    @include('layouts.partials.page-header', [
+        'title' => __('archive.users_management'),
+        'subtitle' => __('archive.users_subtitle'),
+        'breadcrumbs' => [
+            ['label' => __('archive.home'), 'url' => $homeRoute],
+            ['label' => __('archive.nav_users')],
+        ],
+    ])
 @endsection
 @section('content')
-<!-- row -->
-
-
-    <livewire:userslivewire/>
-
-            
-<!-- row closed -->
-@endsection
-@section('js')
-@livewireScripts
+    <livewire:userslivewire />
 @endsection

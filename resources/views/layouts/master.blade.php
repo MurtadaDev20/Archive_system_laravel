@@ -1,80 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl" data-bs-theme="light">
 
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="keywords" content="HTML5 Template" />
-    <meta name="description" content="Webmin - Bootstrap 4 & Angular 5 Admin Dashboard Template" />
-    <meta name="author" content="potenzaglobalsolutions.com" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-    {{-- Start Pusher --}}
-    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
-    <script>
-  
-      // Enable pusher logging - don't include this in production
-      Pusher.logToConsole = true;
-  
-      var pusher = new Pusher('ccf74230cb4b82ec6ae6', {
-        cluster: 'us2'
-      });
-  
-      var channel = pusher.subscribe('my-channel');
-      channel.bind('my-event', function(data) {
-        alert(JSON.stringify(data));
-      });
-    </script>
-    @vite('resources/js/app.js')
-
-    {{-- End Pusher --}}
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    @auth
+        <meta name="user-id" content="{{ Auth::id() }}">
+        @php
+            $teamManagerId = Auth::user()->hasRole('Manager')
+                ? Auth::id()
+                : Auth::user()->manager_id;
+        @endphp
+        @if($teamManagerId)
+            <meta name="team-manager-id" content="{{ $teamManagerId }}">
+        @endif
+    @endauth
     @include('layouts.head')
 </head>
 
-<body>
+<body class="archive-app">
 
-    <div class="wrapper">
-
-        <!--=================================
- preloader -->
-
-        <div id="pre-loader">
-            <img src="{{asset('assets/images/pre-loader/loader-01.svg')}}" alt="">
+    <div id="pre-loader" aria-hidden="true">
+        <div class="spinner-border text-success" role="status">
+            <span class="visually-hidden">{{ __('archive.loading') }}</span>
         </div>
+    </div>
 
-        <!--=================================
- preloader -->
+    <div class="archive-sidebar-backdrop" id="sidebarBackdrop"></div>
 
-        @include('layouts.main-header')
-
+    <div class="archive-shell">
         @include('layouts.main-sidebar')
 
-        <!--=================================
- Main content -->
-        <!-- main-content -->
-        <div class="content-wrapper">
+        <div class="archive-main">
+            @include('layouts.main-header')
 
-            @yield('page-header')
-
-            @yield('content')
-
-            
-            <!--=================================
- wrapper -->
-
-            <!--=================================
- footer -->
+            <main class="archive-content" role="main">
+                @yield('page-header')
+                @yield('content')
+            </main>
 
             @include('layouts.footer')
-        </div><!-- main content wrapper end-->
-    </div>
-    </div>
+        </div>
     </div>
 
-    <!--=================================
- footer -->
-    
     @include('layouts.footer-scripts')
-
+    @auth
+        <livewire:archive-realtime-livewire />
+    @endauth
+    @stack('scripts')
 </body>
 
 </html>
