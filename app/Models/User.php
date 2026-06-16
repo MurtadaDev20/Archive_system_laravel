@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'password',
         'manager_id',
+        'department_id',
     ];
 
     protected $hidden = [
@@ -34,6 +35,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'manager_id' => 'integer',
+        'department_id' => 'integer',
     ];
 
     public function legacyRoles(): BelongsToMany
@@ -54,6 +56,16 @@ class User extends Authenticatable
     public function departments(): HasMany
     {
         return $this->hasMany(Department::class);
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function managedDepartments(): HasMany
+    {
+        return $this->hasMany(Department::class, 'manager_id');
     }
 
     public function manager(): BelongsTo

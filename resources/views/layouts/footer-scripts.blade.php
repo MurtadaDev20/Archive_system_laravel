@@ -77,6 +77,16 @@
             badge.classList.toggle('d-none', total <= 0);
         });
 
+        Livewire.on('archive-refreshed', function () {
+            document.querySelectorAll('[wire\\:id]').forEach(function (el) {
+                const component = Livewire.find(el.getAttribute('wire:id'));
+                const name = component?.name ?? '';
+                if (name === 'manage-file-livewire' || name === 'document-detail-livewire') {
+                    component.$wire.$refresh();
+                }
+            });
+        });
+
         if (typeof Echo !== 'undefined') {
             const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
             const teamManagerId = document.querySelector('meta[name="team-manager-id"]')?.content;
@@ -101,6 +111,40 @@
 
             if (teamManagerId) {
                 Echo.private('team.' + teamManagerId).listen('.ArchiveActivity', handleArchiveActivity);
+            }
+
+            // احتياط: إذا WebSocket غير متصل، فعّل polling خفيف كل 45 ثانية
+            const pollHost = document.querySelector('[data-archive-realtime-poll="0"]');
+            if (pollHost && typeof Echo !== 'undefined' && Echo.connector?.pusher) {
+                const fallbackPollMs = 45000;
+                let fallbackTimer = null;
+
+                function startFallbackPoll() {
+                    if (fallbackTimer) return;
+                    fallbackTimer = setInterval(function () {
+                        const el = document.querySelector('[data-archive-realtime-poll="0"]');
+                        const wireId = el?.getAttribute('wire:id');
+                        const component = wireId ? Livewire.find(wireId) : null;
+                        if (component) {
+                            component.$wire.sync();
+                        }
+                    }, fallbackPollMs);
+                }
+
+                function stopFallbackPoll() {
+                    if (fallbackTimer) {
+                        clearInterval(fallbackTimer);
+                        fallbackTimer = null;
+                    }
+                }
+
+                Echo.connector.pusher.connection.bind('connected', stopFallbackPoll);
+                Echo.connector.pusher.connection.bind('disconnected', startFallbackPoll);
+                Echo.connector.pusher.connection.bind('unavailable', startFallbackPoll);
+
+                if (Echo.connector.pusher.connection.state !== 'connected') {
+                    startFallbackPoll();
+                }
             }
         }
     });

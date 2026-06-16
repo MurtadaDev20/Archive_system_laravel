@@ -117,10 +117,18 @@ class FolderLivewire extends Component
 
     public function render()
     {
+        $user = Auth::user();
+        $accessIds = app(\App\Services\DepartmentScopeService::class)->accessDepartmentIds($user);
+
+        $query = Folder::with(['user', 'files', 'department'])
+            ->orderByDesc('created_at');
+
+        if (! $user->hasRole('Admin')) {
+            $query->whereIn('dep_id', $accessIds ?: [0]);
+        }
+
         return view('livewire.folder-livewire', [
-            'folders' => Folder::with(['user', 'files'])
-                ->orderByDesc('created_at')
-                ->paginate(12),
+            'folders' => $query->paginate(12),
         ]);
     }
 }

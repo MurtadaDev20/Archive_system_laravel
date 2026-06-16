@@ -10,6 +10,7 @@ use App\Models\File;
 use App\Models\Folder;
 use App\Models\Status;
 use App\Models\User;
+use App\Services\DepartmentScopeService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -110,42 +111,48 @@ class DashboardController extends Controller
         $managerActionIds = app(\App\Services\DocumentWorkflowService::class)->managerActionStatusIds();
         $approvedId = Status::idForSlug('approved');
         $rejectedId = Status::idForSlug('rejected');
-        $scope = $this->scopedFilesQuery($user);
-        $isManager = $user->hasRole('Manager');
+        $scopeQuery = $this->scopedFilesQuery($user);
+        $deptScope = app(DepartmentScopeService::class);
+        $managedIds = $deptScope->managedDepartmentIds($user);
+        $accessIds = $deptScope->accessDepartmentIds($user);
+        $hasManagedDepartments = ! empty($managedIds);
+        $isManager = $hasManagedDepartments || $user->hasRole('Manager');
 
         $stats = [
-            'myDocuments' => (clone $scope)->count(),
-            'pending' => $isManager
+            'myDocuments' => (clone $scopeQuery)->count(),
+            'pending' => $hasManagedDepartments
                 ? File::whereIn('status_id', $managerActionIds)
-                    ->whereHas('folder', fn ($q) => $q->where('user_id', $user->id))
+                    ->whereIn('dep_id', $managedIds)
                     ->count()
-                : (clone $scope)->whereIn('status_id', $managerActionIds)->count(),
-            'approved' => (clone $scope)->where('status_id', $approvedId)->count(),
-            'rejected' => (clone $scope)->where('status_id', $rejectedId)->count(),
-            'newThisMonth' => (clone $scope)->whereMonth('created_at', now()->month)->count(),
-            'folders' => $isManager
-                ? Folder::where('user_id', $user->id)->count()
-                : Folder::where('user_id', $user->id)->orWhere('user_id', $user->manager_id)->count(),
-            'employees' => $isManager ? User::where('manager_id', $user->id)->count() : 0,
+                : (clone $scopeQuery)->whereIn('status_id', $managerActionIds)->count(),
+            'approved' => (clone $scopeQuery)->where('status_id', $approvedId)->count(),
+            'rejected' => (clone $scopeQuery)->where('status_id', $rejectedId)->count(),
+            'newThisMonth' => (clone $scopeQuery)->whereMonth('created_at', now()->month)->count(),
+            'folders' => ! empty($accessIds)
+                ? Folder::whereIn('dep_id', $accessIds)->count()
+                : 0,
+            'employees' => $hasManagedDepartments
+                ? User::whereIn('department_id', $managedIds)->count()
+                : 0,
         ];
 
-        $recentDocuments = (clone $scope)
+        $recentDocuments = (clone $scopeQuery)
             ->with(['status', 'folder', 'department'])
             ->latest()
             ->limit(8)
             ->get();
 
         $pendingApprovals = collect();
-        if ($isManager) {
-            $pendingApprovals = File::with(['user', 'folder', 'status'])
+        if ($hasManagedDepartments) {
+            $pendingApprovals = File::with(['user', 'folder', 'status', 'department'])
                 ->whereIn('status_id', $managerActionIds)
-                ->whereHas('folder', fn ($q) => $q->where('user_id', $user->id))
+                ->whereIn('dep_id', $managedIds)
                 ->latest()
                 ->limit(8)
                 ->get();
         }
 
-        $expiringDocuments = (clone $scope)
+        $expiringDocuments = (clone $scopeQuery)
             ->whereNotNull('expiry_date')
             ->whereDate('expiry_date', '<=', now()->addDays(30))
             ->whereDate('expiry_date', '>=', now())
@@ -154,11 +161,11 @@ class DashboardController extends Controller
             ->get();
 
         $inbox = app(\App\Services\DocumentInboxService::class);
-        $deptIds = $inbox->departmentIdsFor($user);
+        $transferDeptIds = $inbox->managedDepartmentIds($user);
         $incomingTransfers = collect();
-        if (! empty($deptIds)) {
+        if (! empty($transferDeptIds)) {
             $incomingTransfers = File::whereHas('transfers', fn ($q) => $q
-                ->whereIn('to_department_id', $deptIds)
+                ->whereIn('to_department_id', $transferDeptIds)
                 ->whereIn('status', [DocumentTransfer::STATUS_SENT, DocumentTransfer::STATUS_RECEIVED]))
                 ->with(['user', 'transfers.fromDepartment', 'transfers.toDepartment'])
                 ->latest()
@@ -179,12 +186,15 @@ class DashboardController extends Controller
 
     protected function scopedFilesQuery(User $user)
     {
-        if ($user->hasRole('Manager')) {
-            $ownerIds = User::where('manager_id', $user->id)->pluck('id')->push($user->id);
+        $scope = app(DepartmentScopeService::class);
+        $accessIds = $scope->accessDepartmentIds($user);
 
-            return File::whereHas('folder', fn ($q) => $q->whereIn('user_id', $ownerIds));
-        }
+        return File::query()->where(function ($q) use ($user, $accessIds) {
+            $q->where('user_id', $user->id);
 
-        return File::where('user_id', $user->id);
+            if (! empty($accessIds)) {
+                $q->orWhereIn('dep_id', $accessIds);
+            }
+        });
     }
 }

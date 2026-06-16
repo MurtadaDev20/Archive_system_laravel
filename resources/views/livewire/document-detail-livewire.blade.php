@@ -19,6 +19,7 @@
                         <li class="nav-item"><button class="nav-link {{ $activeTab === 'comments' ? 'active' : '' }}" wire:click="$set('activeTab','comments')">{{ __('archive.tab_comments') }}</button></li>
                         <li class="nav-item"><button class="nav-link {{ $activeTab === 'audit' ? 'active' : '' }}" wire:click="$set('activeTab','audit')">{{ __('archive.audit_log') }}</button></li>
                         <li class="nav-item"><button class="nav-link {{ $activeTab === 'qr' ? 'active' : '' }}" wire:click="$set('activeTab','qr')"><i class="bi bi-qr-code me-1"></i>{{ __('archive.tab_qr') }}</button></li>
+                        <li class="nav-item"><button class="nav-link {{ $activeTab === 'ocr' ? 'active' : '' }}" wire:click="$set('activeTab','ocr')"><i class="bi bi-file-text me-1"></i>{{ __('archive.tab_ocr') }}</button></li>
                     </ul>
 
                     @if($activeTab === 'info')
@@ -279,6 +280,52 @@
                                 </div>
                             </div>
                         </div>
+                    @elseif($activeTab === 'ocr')
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <x-ocr-status-badge :status="$document->ocr_status ?? 'pending'" />
+                                @if($document->ocr_languages)
+                                    <span class="badge text-bg-light border"><i class="bi bi-translate me-1"></i>{{ $document->ocr_languages }}</span>
+                                @endif
+                                @if($document->ocr_page_count)
+                                    <span class="small text-archive-muted">{{ __('archive.ocr_pages', ['count' => $document->ocr_page_count]) }}</span>
+                                @endif
+                                @if($document->ocr_processed_at)
+                                    <span class="small text-archive-muted">{{ __('archive.ocr_processed_at') }}: {{ $document->ocr_processed_at->format('Y-m-d H:i') }}</span>
+                                @endif
+                            </div>
+                            @can('update', $document)
+                                @if($document->supportsOcr())
+                                    <button wire:click="reprocessOcr" wire:loading.attr="disabled" class="btn btn-outline-secondary btn-sm">
+                                        <span wire:loading.remove wire:target="reprocessOcr"><i class="bi bi-arrow-clockwise me-1"></i>{{ __('archive.ocr_reprocess') }}</span>
+                                        <span wire:loading wire:target="reprocessOcr"><span class="spinner-border spinner-border-sm me-1"></span>{{ __('archive.loading') }}</span>
+                                    </button>
+                                @endif
+                            @endcan
+                        </div>
+
+                        @if(in_array($document->ocr_status, ['pending', 'processing'], true) && ($ocrPoll = (int) config('archive.ocr_poll_seconds', 10)) > 0)
+                            <div class="alert alert-info border-0 d-flex align-items-center gap-2" wire:poll.{{ $ocrPoll }}s.visible="refreshDocument">
+                                <div class="spinner-border spinner-border-sm text-info"></div>
+                                <span>{{ __('archive.ocr_processing_message') }}</span>
+                            </div>
+                        @endif
+
+                        @if($document->ocr_status === 'failed' && $document->ocr_error)
+                            <div class="alert alert-danger border-0">
+                                <strong>{{ __('archive.ocr_error_title') }}</strong>
+                                <div class="small mt-1">{{ $document->ocr_error }}</div>
+                            </div>
+                        @endif
+
+                        @if($document->ocr_status === 'skipped')
+                            <x-empty-state icon="bi-file-earmark" :title="__('archive.ocr_skipped_title')" :message="__('archive.ocr_skipped_desc')" />
+                        @elseif(filled($document->ocr_text))
+                            <div class="border rounded p-3 bg-light ocr-text-preview" style="max-height:480px;overflow:auto;white-space:pre-wrap;font-family: inherit;line-height:1.7;">{{ $document->ocr_text }}</div>
+                            <div class="small text-archive-muted mt-2">{{ __('archive.ocr_search_hint') }}</div>
+                        @elseif(! in_array($document->ocr_status, ['pending', 'processing'], true))
+                            <x-empty-state icon="bi-file-text" :title="__('archive.ocr_no_text_title')" :message="__('archive.ocr_no_text_desc')" />
+                        @endif
                     @endif
                 </div>
             </div>

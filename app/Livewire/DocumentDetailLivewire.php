@@ -11,6 +11,7 @@ use App\Services\DocumentInboxService;
 use App\Services\DocumentQrService;
 use App\Services\DocumentTransferService;
 use App\Services\DocumentWorkflowService;
+use App\Services\Ocr\DocumentOcrProcessor;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -55,6 +56,21 @@ class DocumentDetailLivewire extends Component
         $qr->regenerate($this->document->fresh());
         $this->document->refresh();
         toastr()->success(__('archive.msg_qr_regenerated'));
+    }
+
+    public function reprocessOcr(DocumentOcrProcessor $ocr): void
+    {
+        $this->authorize('update', $this->document);
+
+        if (! $this->document->supportsOcr()) {
+            toastr()->warning(__('archive.ocr_not_supported'));
+
+            return;
+        }
+
+        $ocr->queue($this->document, true);
+        $this->document->refresh();
+        toastr()->success(__('archive.ocr_reprocess_queued'));
     }
 
     public function addComment(): void

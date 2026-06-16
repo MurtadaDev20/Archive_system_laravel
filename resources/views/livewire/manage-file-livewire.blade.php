@@ -18,7 +18,7 @@
                         <span class="badge bg-danger ms-1">{{ $sidebarCounts['transfers'] ?? 0 }}</span>
                     </button>
                 @endif
-                @if(Auth::user()->hasRole('Manager') && (($sidebarCounts['approvals'] ?? 0) > 0 || $inboxFilter === 'approvals'))
+                @if(($sidebarCounts['approvals'] ?? 0) > 0 || $inboxFilter === 'approvals')
                     <button type="button" wire:click="$set('inboxFilter', 'approvals')"
                         class="btn btn-sm {{ $inboxFilter === 'approvals' ? 'btn-archive-accent' : 'btn-outline-warning' }}">
                         <i class="bi bi-hourglass-split me-1"></i>{{ __('archive.pending_approvals') }}
@@ -132,6 +132,7 @@
                                 <th>{{ __('archive.uploaded_by') }}</th>
                                 <th>{{ __('archive.date') }}</th>
                                 <th>{{ __('archive.status') }}</th>
+                                <th>{{ __('archive.ocr') }}</th>
                                 <th class="text-end">{{ __('archive.actions') }}</th>
                             </tr>
                         </thead>
@@ -163,6 +164,16 @@
                                         </td>
                                         <td>
                                             <span class="badge rounded-pill badge-status-{{ $file->status?->slug ?? 'draft' }}">{{ archive_status_label($file->status_id) }}</span>
+                                        </td>
+                                        <td>
+                                            <x-ocr-status-badge :status="$file->ocr_status ?? 'pending'" />
+                                            @can('update', $file)
+                                                @if($file->supportsOcr() && in_array($file->ocr_status, ['failed', 'completed'], true))
+                                                    <button wire:click="reprocessOcr({{ $file->id }})" wire:loading.attr="disabled" class="btn btn-link btn-sm p-0 ms-1" title="{{ __('archive.ocr_reprocess') }}">
+                                                        <i class="bi bi-arrow-clockwise"></i>
+                                                    </button>
+                                                @endif
+                                            @endcan
                                         </td>
                                         <td class="text-end">
                                             <div class="d-inline-flex gap-1 flex-wrap justify-content-end">

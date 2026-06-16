@@ -2,10 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Department;
 use App\Models\DocumentTransfer;
 use App\Models\File;
-use App\Models\Folder;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 
@@ -13,23 +11,12 @@ class DocumentInboxService
 {
     public function departmentIdsFor(User $user): array
     {
-        return Cache::remember('archive.dept_ids.'.$user->id, 300, function () use ($user) {
-            $ids = Department::where('manager_id', $user->id)->pluck('id')->all();
+        return app(DepartmentScopeService::class)->accessDepartmentIds($user);
+    }
 
-            $ids = array_merge(
-                $ids,
-                Folder::where('user_id', $user->id)->pluck('dep_id')->all()
-            );
-
-            if ($user->manager_id) {
-                $ids = array_merge(
-                    $ids,
-                    Folder::where('user_id', $user->manager_id)->pluck('dep_id')->all()
-                );
-            }
-
-            return array_values(array_unique(array_filter($ids)));
-        });
+    public function managedDepartmentIds(User $user): array
+    {
+        return app(DepartmentScopeService::class)->managedDepartmentIds($user);
     }
 
     public function sidebarCounts(User $user): array
@@ -55,17 +42,20 @@ class DocumentInboxService
         }
 
         $statusIds = app(DocumentWorkflowService::class)->managerActionStatusIds();
+        $scope = app(DepartmentScopeService::class);
 
         if ($user->hasRole('Admin')) {
             return File::whereIn('status_id', $statusIds)->count();
         }
 
-        if (! $user->hasRole('Manager')) {
+        $managedIds = $scope->managedDepartmentIds($user);
+
+        if (empty($managedIds)) {
             return 0;
         }
 
         return File::whereIn('status_id', $statusIds)
-            ->whereHas('folder', fn ($q) => $q->where('user_id', $user->id))
+            ->whereIn('dep_id', $managedIds)
             ->count();
     }
 
@@ -75,7 +65,7 @@ class DocumentInboxService
             return $this->sidebarCounts($user)['transfers'];
         }
 
-        $deptIds = $this->departmentIdsFor($user);
+        $deptIds = $this->managedDepartmentIds($user);
 
         if (empty($deptIds) && ! $user->hasRole('Admin')) {
             return 0;
@@ -106,7 +96,7 @@ class DocumentInboxService
             return true;
         }
 
-        return in_array((int) $transfer->to_department_id, $this->departmentIdsFor($user), true);
+        return in_array((int) $transfer->to_department_id, $this->managedDepartmentIds($user), true);
     }
 
     public function hasIncomingTransfer(User $user, File $file, ?array $incomingIds = null): bool
@@ -115,7 +105,7 @@ class DocumentInboxService
             return in_array((int) $file->id, $incomingIds, true);
         }
 
-        $deptIds = $this->departmentIdsFor($user);
+        $deptIds = $this->managedDepartmentIds($user);
 
         if (empty($deptIds) && ! $user->hasRole('Admin')) {
             return false;

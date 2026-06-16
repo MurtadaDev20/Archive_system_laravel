@@ -45,15 +45,14 @@
                         </div>
                         @if ($showUserMode)
                         <div class="col-md-2">
-                            <label class="form-label fw-semibold">{{ __('archive.manager') }}</label>
-                            <select wire:model="selectManager" class="form-select" @if($editMode && $roleSelected !== '4') disabled @endif>
-                                <option value="">{{ __('archive.select_manager') }}</option>
-                                @foreach ($manager as $manage)
-                                    @if($manage->role_id == 3)
-                                        <option value="{{ $manage->users->id }}">{{ $manage->users->name }}</option>
-                                    @endif
+                            <label class="form-label fw-semibold">{{ __('archive.department') }}</label>
+                            <select wire:model="selectDepartment" class="form-select">
+                                <option value="">{{ __('archive.select_department') }}</option>
+                                @foreach ($departments as $dep)
+                                    <option value="{{ $dep->id }}">{{ $dep->dep_name }}</option>
                                 @endforeach
                             </select>
+                            @error('selectDepartment') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
                         @endif
                         <div class="col-md-2 d-flex align-items-end gap-2">
@@ -113,7 +112,7 @@
                             <th>{{ __('archive.full_name') }}</th>
                             <th>{{ __('archive.email') }}</th>
                             <th>{{ __('archive.role') }}</th>
-                            <th>{{ __('archive.manager') }}</th>
+                            <th>{{ __('archive.department') }}</th>
                             <th>{{ __('archive.joined') }}</th>
                             <th class="text-end">{{ __('archive.actions') }}</th>
                         </tr>
@@ -122,14 +121,19 @@
                         @php $rowNum = 0; @endphp
                         @foreach ($users as $user)
                             @if ($user->role_id == 1) @continue @endif
-                            @if(Auth::user()->hasRole('Admin') || Auth::user()->id == $user->users->manager_id)
+                            @php
+                                $canViewRow = Auth::user()->hasRole('Admin')
+                                    || (Auth::user()->hasRole('Manager') && $user->users->department_id
+                                        && in_array((int) $user->users->department_id, app(\App\Services\DepartmentScopeService::class)->managedDepartmentIds(Auth::user()), true));
+                            @endphp
+                            @if ($canViewRow)
                                 @php $rowNum++; @endphp
                                 <tr wire:key="user-{{ $user->users->id }}">
                                     <td>{{ $users->firstItem() + $rowNum - 1 }}</td>
                                     <td class="fw-semibold">{{ $user->users->name }}</td>
                                     <td>{{ $user->users->email }}</td>
                                     <td><span class="badge text-bg-light border">{{ archive_role_label($user->role->name) }}</span></td>
-                                    <td>{{ $user->users->manager?->name ?? '—' }}</td>
+                                    <td>{{ $user->users->department?->dep_name ?? '—' }}</td>
                                     <td>{{ $user->users->created_at->format('Y-m-d') }}</td>
                                     <td class="text-end">
                                         @can('update', $user->users)

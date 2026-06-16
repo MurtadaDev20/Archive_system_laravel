@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Category;
 use App\Models\DocumentType;
 use App\Models\DocumentVersion;
+use App\Models\DocumentWorkflowLog;
 use App\Models\File;
 use App\Models\Folder;
 use App\Models\RoleUser;
@@ -15,7 +16,9 @@ use App\Services\AuditLogger;
 use App\Services\DocumentNumberService;
 use App\Services\DocumentQrService;
 use App\Services\DocumentStorageService;
+use App\Services\DepartmentScopeService;
 use App\Services\DocumentWorkflowService;
+use App\Services\Ocr\DocumentOcrProcessor;
 use App\Support\ArchiveNotifier;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\UploadedFile;
@@ -76,6 +79,7 @@ class FileLivewire extends Component
         $folder = Folder::findOrFail($this->selectFolder);
         $this->authorize('upload', $folder);
 
+        $bulkUpload = $fileCount > 1;
         $created = [];
         foreach ($this->attachedFiles as $index => $upload) {
             $created[] = $this->persistDocument(
@@ -87,8 +91,13 @@ class FileLivewire extends Component
                 $numbers,
                 $storage,
                 $workflow,
-                $qr
+                $qr,
+                $bulkUpload
             );
+        }
+
+        if ($bulkUpload) {
+            $this->finalizeBatchUpload($created, $user, $folder);
         }
 
         $this->reset(['fileName', 'description', 'attachedFiles', 'selectFolder', 'categoryId', 'documentTypeId', 'tagIds', 'expiryDate', 'notes']);
@@ -113,11 +122,17 @@ class FileLivewire extends Component
         DocumentNumberService $numbers,
         DocumentStorageService $storage,
         DocumentWorkflowService $workflow,
-        DocumentQrService $qr
+        DocumentQrService $qr,
+        bool $deferNotifications = false
     ): File {
         $roleUser = RoleUser::where('user_id', $user->id)->first();
-        $pendingApprovalId = Status::idForSlug('pending_approval');
         $title = $this->resolveDocumentTitle($upload, $index, $total);
+
+        $scope = app(DepartmentScopeService::class);
+        $isDeptManager = $scope->canManageDepartment($user, (int) $folder->dep_id);
+        $statusId = $isDeptManager
+            ? Status::idForSlug('approved')
+            : Status::idForSlug('pending_approval');
 
         $file = File::create([
             'code' => 'ARC'.now()->format('YmdHis').Str::upper(Str::random(4)),
@@ -131,12 +146,26 @@ class FileLivewire extends Component
             'dep_id' => $folder->dep_id,
             'category_id' => $this->categoryId ?: null,
             'document_type_id' => $this->documentTypeId ?: null,
-            'status_id' => $pendingApprovalId,
+            'status_id' => $statusId,
+            'approved_by' => $isDeptManager ? $user->id : null,
+            'approved_at' => $isDeptManager ? now() : null,
             'expiry_date' => $this->expiryDate ?: null,
             'notes' => $this->notes,
             'file' => 'pending',
             'current_version' => 1,
+            'ocr_status' => File::OCR_PENDING,
+            'ocr_languages' => config('ocr.languages'),
         ]);
+
+        if ($isDeptManager) {
+            DocumentWorkflowLog::create([
+                'file_id' => $file->id,
+                'from_status_id' => Status::idForSlug('pending_approval'),
+                'to_status_id' => $statusId,
+                'user_id' => $user->id,
+                'comment' => __('archive.workflow_auto_approve_manager_upload'),
+            ]);
+        }
 
         $file->load('category');
         $path = $storage->store($file, $upload, $folder);
@@ -160,13 +189,57 @@ class FileLivewire extends Component
 
         AuditLogger::log('document.create', __('archive.audit_file_upload', ['name' => $file->file_name]), $file, ['name' => $file->file_name]);
 
-        ArchiveNotifier::documentUploaded($file, $user);
-
-        if ($folder->user) {
-            Notification::send($folder->user, new DocumentUploadedNotification($file));
+        if (! $deferNotifications) {
+            $this->notifyDocumentUploaded($file, $user, $folder);
         }
 
+        app(DocumentOcrProcessor::class)->queue($file);
+
         return $file;
+    }
+
+    protected function notifyDocumentUploaded(File $file, $user, Folder $folder): void
+    {
+        $managerId = app(DepartmentScopeService::class)->departmentManagerId((int) $folder->dep_id);
+
+        if ($managerId && (int) $managerId !== (int) $user->id) {
+            ArchiveNotifier::documentUploaded($file, $user);
+
+            $manager = \App\Models\User::find($managerId);
+            if ($manager) {
+                Notification::send($manager, new DocumentUploadedNotification($file));
+            }
+        }
+    }
+
+    /** @param  File[]  $files */
+    protected function finalizeBatchUpload(array $files, $user, Folder $folder): void
+    {
+        if (empty($files)) {
+            return;
+        }
+
+        $count = count($files);
+        $teamManagerId = app(DepartmentScopeService::class)->departmentManagerId((int) $folder->dep_id);
+
+        if ($teamManagerId && (int) $teamManagerId !== (int) $user->id) {
+            ArchiveNotifier::notifyTeam(
+                $teamManagerId,
+                [$teamManagerId],
+                __('archive.realtime_documents_uploaded', [
+                    'count' => $count,
+                    'user' => $user->name,
+                ]),
+                'info',
+                $files[0],
+                $user->id
+            );
+
+            $manager = \App\Models\User::find($teamManagerId);
+            if ($manager) {
+                Notification::send($manager, new DocumentUploadedNotification($files[0]));
+            }
+        }
     }
 
     protected function resolveDocumentTitle(UploadedFile $upload, int $index, int $total): string
@@ -187,7 +260,8 @@ class FileLivewire extends Component
     public function render()
     {
         $user = Auth::user();
-        $folders = Folder::where('user_id', $user->id)->orWhere('user_id', $user->manager_id)->get();
+        $accessIds = app(\App\Services\DepartmentScopeService::class)->accessDepartmentIds($user);
+        $folders = Folder::whereIn('dep_id', $accessIds)->orderBy('folder_name')->get();
 
         return view('livewire.file-livewire', [
             'folders' => $folders,

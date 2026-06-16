@@ -12,7 +12,7 @@ window.axios = axios;
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 /**
- * Laravel Echo + Soketi (Pusher محلي على 127.0.0.1:6001)
+ * Laravel Echo + Laravel WebSockets (Pusher محلي عبر PHP على 127.0.0.1:6001)
  */
 
 import Echo from 'laravel-echo';
@@ -23,6 +23,7 @@ window.Pusher = Pusher;
 const scheme = import.meta.env.VITE_PUSHER_SCHEME ?? 'http';
 const host = import.meta.env.VITE_PUSHER_HOST ?? '127.0.0.1';
 const port = Number(import.meta.env.VITE_PUSHER_PORT ?? 6001);
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
 window.Echo = new Echo({
     broadcaster: 'pusher',
@@ -35,4 +36,11 @@ window.Echo = new Echo({
     encrypted: scheme === 'https',
     disableStats: true,
     enabledTransports: ['ws', 'wss'],
+    authEndpoint: '/broadcasting/auth',
+    auth: {
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            Accept: 'application/json',
+        },
+    },
 });

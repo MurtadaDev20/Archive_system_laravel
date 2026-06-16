@@ -4,19 +4,23 @@ namespace App\Policies;
 
 use App\Models\Folder;
 use App\Models\User;
+use App\Services\DepartmentScopeService;
 
 class FolderPolicy
 {
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['Manager', 'Admin']);
+        return $user->hasAnyRole(['Manager', 'Admin'])
+            || ! empty(app(DepartmentScopeService::class)->managedDepartmentIds($user));
     }
 
     public function update(User $user, Folder $folder): bool
     {
-        return $user->hasRole('Admin')
-            || $user->id === $folder->user_id
-            || (int) $user->manager_id === $folder->user_id;
+        if ($user->hasRole('Admin')) {
+            return true;
+        }
+
+        return app(DepartmentScopeService::class)->canManageDepartment($user, (int) $folder->dep_id);
     }
 
     public function delete(User $user, Folder $folder): bool
@@ -30,7 +34,12 @@ class FolderPolicy
             return true;
         }
 
-        return $user->id === $folder->user_id
-            || (int) $user->manager_id === $folder->user_id;
+        $scope = app(DepartmentScopeService::class);
+
+        if ($scope->canManageDepartment($user, (int) $folder->dep_id)) {
+            return true;
+        }
+
+        return $user->department_id && (int) $user->department_id === (int) $folder->dep_id;
     }
 }

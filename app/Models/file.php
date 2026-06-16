@@ -19,14 +19,27 @@ class File extends Model
         'code', 'document_number', 'file_name', 'description', 'folder_id', 'file',
         'dep_id', 'category_id', 'document_type_id', 'user_id', 'owner_id',
         'role_id', 'status_id', 'approved_by', 'approved_at', 'expiry_date',
-        'archive_date', 'qr_code_path', 'notes', 'ocr_text', 'current_version',
+        'archive_date', 'qr_code_path', 'notes', 'ocr_text', 'ocr_status',
+        'ocr_processed_at', 'ocr_error', 'ocr_languages', 'ocr_page_count', 'current_version',
     ];
+
+    public const OCR_PENDING = 'pending';
+
+    public const OCR_PROCESSING = 'processing';
+
+    public const OCR_COMPLETED = 'completed';
+
+    public const OCR_FAILED = 'failed';
+
+    public const OCR_SKIPPED = 'skipped';
 
     protected $casts = [
         'approved_at' => 'datetime',
         'expiry_date' => 'date',
         'archive_date' => 'date',
+        'ocr_processed_at' => 'datetime',
         'current_version' => 'integer',
+        'ocr_page_count' => 'integer',
     ];
 
     public function folder(): BelongsTo
@@ -142,5 +155,22 @@ class File extends Model
     public function statusLabel(): string
     {
         return $this->status?->label() ?? '';
+    }
+
+    public function ocrStatusLabel(): string
+    {
+        return __('archive.ocr_status_'.$this->ocr_status);
+    }
+
+    public function isOcrSearchable(): bool
+    {
+        return $this->ocr_status === self::OCR_COMPLETED && filled($this->ocr_text);
+    }
+
+    public function supportsOcr(): bool
+    {
+        $extension = strtolower(pathinfo((string) $this->file, PATHINFO_EXTENSION));
+
+        return in_array($extension, config('ocr.supported_extensions', []), true);
     }
 }

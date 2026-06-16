@@ -7,6 +7,7 @@ use App\Models\File;
 use App\Models\User;
 use App\Services\ArchiveRealtimeService;
 use App\Services\ArchiveTeamService;
+use App\Services\DepartmentScopeService;
 use Illuminate\Support\Facades\Log;
 
 class ArchiveNotifier
@@ -68,7 +69,7 @@ class ArchiveNotifier
                 $excludeActorId
             ));
         } catch (\Throwable $exception) {
-            Log::warning('Archive broadcast skipped (Soketi unavailable?)', [
+            Log::warning('Archive broadcast skipped (WebSocket server unavailable?)', [
                 'driver' => $driver,
                 'message' => $exception->getMessage(),
             ]);
@@ -77,18 +78,17 @@ class ArchiveNotifier
 
     public static function documentUploaded(File $file, User $uploader): void
     {
-        $file->loadMissing('folder.user');
-        $teams = app(ArchiveTeamService::class);
-        $teamManagerId = $teams->managerIdForFile($file);
-        $managerId = (int) ($file->folder?->user_id ?? 0);
+        $file->loadMissing('folder.department');
+        $scope = app(DepartmentScopeService::class);
+        $teamManagerId = $scope->managerIdForFile($file);
 
-        if (! $teamManagerId || ! $managerId) {
+        if (! $teamManagerId) {
             return;
         }
 
         self::notifyTeam(
             $teamManagerId,
-            [$managerId],
+            [$teamManagerId],
             __('archive.realtime_document_uploaded', [
                 'name' => $file->file_name,
                 'user' => $uploader->name,
@@ -122,9 +122,10 @@ class ArchiveNotifier
             return;
         }
 
-        $teams = app(ArchiveTeamService::class);
         $sender = User::find($senderId);
-        $teamManagerId = $sender ? $teams->managerIdFor($sender) : null;
+        $teamManagerId = $sender?->department_id
+            ? app(DepartmentScopeService::class)->departmentManagerId((int) $sender->department_id)
+            : null;
 
         if (! $teamManagerId) {
             return;
@@ -145,9 +146,10 @@ class ArchiveNotifier
             return;
         }
 
-        $teams = app(ArchiveTeamService::class);
         $sender = User::find($senderId);
-        $teamManagerId = $sender ? $teams->managerIdFor($sender) : null;
+        $teamManagerId = $sender?->department_id
+            ? app(DepartmentScopeService::class)->departmentManagerId((int) $sender->department_id)
+            : null;
 
         if (! $teamManagerId) {
             return;
@@ -181,7 +183,7 @@ class ArchiveNotifier
 
         $actor = $actorUserId ? User::find($actorUserId) : null;
 
-        if ($actor?->hasRole('Manager') && (int) $actor->id === $teamManagerId) {
+        if ($actor && app(DepartmentScopeService::class)->canApproveFile($actor, $file)) {
             $recipients = $teams->documentStakeholderIds($file);
         } else {
             $recipients = [$teamManagerId];

@@ -2,10 +2,12 @@
 
 namespace App\Livewire;
 
+use App\Models\Department;
 use App\Models\Role;
 use App\Models\RoleUser;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\DepartmentScopeService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -25,6 +27,7 @@ class Userslivewire extends Component
     public $password;
     public $password_manager;
     public $selectManager;
+    public $selectDepartment;
     public $roleSelected;
     public $showUserMode = false;
     public $editMode = false;
@@ -38,13 +41,22 @@ class Userslivewire extends Component
             'email' => 'required|email|unique:users',
             'password' => 'required|min:8',
             'roleSelected' => 'required',
+            'selectDepartment' => Rule::requiredIf($this->roleSelected === '4'),
         ]);
+
+        $departmentId = $this->roleSelected === '4' ? (int) $this->selectDepartment : null;
+        $managerId = null;
+
+        if ($departmentId) {
+            $managerId = Department::where('id', $departmentId)->value('manager_id');
+        }
 
         $user = User::create([
             'name' => $this->fullname,
             'email' => $this->email,
             'password' => Hash::make($this->password),
-            'manager_id' => $this->selectManager > 0 ? $this->selectManager : null,
+            'department_id' => $departmentId,
+            'manager_id' => $managerId,
         ]);
 
         RoleUser::create(['user_id' => $user->id, 'role_id' => $this->roleSelected]);
@@ -54,6 +66,10 @@ class Userslivewire extends Component
             $user,
             ['email' => $user->email]
         );
+
+        if ($departmentId) {
+            DepartmentScopeService::clearDepartmentCache($departmentId);
+        }
 
         $this->resetForm();
         toastr()->success(__('archive.msg_user_created'));
@@ -68,14 +84,25 @@ class Userslivewire extends Component
             'password_manager' => 'required|min:8',
         ]);
 
+        $managedIds = app(DepartmentScopeService::class)->managedDepartmentIds(Auth::user());
+        $departmentId = $managedIds[0] ?? Auth::user()->department_id;
+
+        if (! $departmentId) {
+            toastr()->error(__('archive.msg_no_managed_department'));
+
+            return;
+        }
+
         $user = User::create([
             'name' => $this->fullname_manager,
             'email' => $this->email_manager,
             'manager_id' => Auth::id(),
+            'department_id' => $departmentId,
             'password' => Hash::make($this->password_manager),
         ]);
 
         RoleUser::create(['user_id' => $user->id, 'role_id' => 4]);
+        DepartmentScopeService::clearDepartmentCache((int) $departmentId);
         AuditLogger::log(
             'user.create.employee',
             __('archive.audit_user_create_employee', ['email' => $user->email]),
@@ -98,6 +125,7 @@ class Userslivewire extends Component
         $this->editMode = true;
         $this->roleSelected = $roleUser ? (string) $roleUser->role_id : '';
         $this->selectManager = $user->manager_id ? (string) $user->manager_id : '';
+        $this->selectDepartment = $user->department_id ? (string) $user->department_id : '';
         $this->showUserMode = $this->roleSelected === '4';
 
         if (Auth::user()->hasRole('Manager')) {
@@ -141,6 +169,7 @@ class Userslivewire extends Component
             $this->validate([
                 'fullname' => 'required',
                 'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($this->editUserId)],
+                'selectDepartment' => Rule::requiredIf($this->roleSelected === '4'),
             ]);
 
             $data = [
@@ -148,11 +177,17 @@ class Userslivewire extends Component
                 'email' => $this->email,
             ];
 
-            if ($this->roleSelected === '4' && $this->selectManager) {
-                $data['manager_id'] = $this->selectManager;
+            if ($this->roleSelected === '4' && $this->selectDepartment) {
+                $departmentId = (int) $this->selectDepartment;
+                $data['department_id'] = $departmentId;
+                $data['manager_id'] = Department::where('id', $departmentId)->value('manager_id');
             }
 
             $user->update($data);
+
+            if (! empty($data['department_id'])) {
+                DepartmentScopeService::clearDepartmentCache((int) $data['department_id']);
+            }
         }
 
         AuditLogger::log(
@@ -197,6 +232,7 @@ class Userslivewire extends Component
             'password',
             'roleSelected',
             'selectManager',
+            'selectDepartment',
             'fullname_manager',
             'email_manager',
             'password_manager',
@@ -207,12 +243,20 @@ class Userslivewire extends Component
     {
         $this->showUserMode = $this->roleSelected == '4';
 
+        $user = Auth::user();
+        $query = RoleUser::with(['role', 'users.manager', 'users.department'])
+            ->orderByDesc('created_at');
+
+        if ($user->hasRole('Manager') && ! $user->hasRole('Admin')) {
+            $managedIds = app(DepartmentScopeService::class)->managedDepartmentIds($user);
+            $query->whereHas('users', fn ($q) => $q->whereIn('department_id', $managedIds ?: [0]));
+        }
+
         return view('livewire.userslivewire', [
             'roles' => Role::all(),
+            'departments' => Department::orderBy('dep_name')->get(['id', 'dep_name']),
             'manager' => RoleUser::with('role', 'users')->get(),
-            'users' => RoleUser::with(['role', 'users.manager'])
-                ->orderByDesc('created_at')
-                ->paginate(10),
+            'users' => $query->paginate(10),
         ]);
     }
 }

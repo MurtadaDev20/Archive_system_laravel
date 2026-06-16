@@ -11,6 +11,15 @@ class ArchiveRealtimeLivewire extends Component
 {
     public int $version = 0;
 
+    public function mount(): void
+    {
+        if (! Auth::check()) {
+            return;
+        }
+
+        $this->version = app(ArchiveRealtimeService::class)->versionFor(Auth::user());
+    }
+
     public function sync(): void
     {
         if (! Auth::check()) {
@@ -21,7 +30,7 @@ class ArchiveRealtimeLivewire extends Component
         $realtime = app(ArchiveRealtimeService::class);
         $currentVersion = $realtime->versionFor($user);
 
-        if ($this->version > 0 && $currentVersion > $this->version) {
+        if ($currentVersion > $this->version) {
             foreach ($realtime->pullNotifications($user) as $notification) {
                 $this->dispatch(
                     'archive-notify',
@@ -30,7 +39,8 @@ class ArchiveRealtimeLivewire extends Component
                 );
             }
 
-            $this->dispatch('archive-refreshed');
+            $this->dispatch('archive-refreshed')->to(ManageFileLivewire::class);
+            $this->dispatch('archive-refreshed')->to(DocumentDetailLivewire::class);
 
             $inbox = app(DocumentInboxService::class);
             $this->dispatch('sidebar-counts-updated', counts: [

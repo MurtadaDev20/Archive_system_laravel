@@ -168,15 +168,6 @@ class DocumentTransferService
             return null;
         }
 
-        if ($department->manager_id) {
-            $managerFolder = Folder::where('dep_id', $department->id)
-                ->where('user_id', $department->manager_id)
-                ->first();
-            if ($managerFolder) {
-                return $managerFolder;
-            }
-        }
-
         return Folder::where('dep_id', $department->id)->orderBy('id')->first();
     }
 

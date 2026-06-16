@@ -5,9 +5,11 @@ namespace App\Livewire;
 use App\Models\Department;
 use App\Models\RoleUser;
 use App\Services\AuditLogger;
+use App\Services\DepartmentScopeService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
-use Livewire\Attributes\Rule;
+use Illuminate\Validation\Rule;
+use Livewire\Attributes\Rule as LivewireRule;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -16,14 +18,14 @@ class DepartmentLivewire extends Component
     use AuthorizesRequests;
     use WithPagination;
 
-    #[Rule('required|unique:departments,dep_name')]
+    #[LivewireRule('required')]
     public $department;
 
     public $editMode = false;
     public $editDepartmentId;
     public $managerSelect;
 
-    #[Rule('required|unique:departments,manager_id')]
+    #[LivewireRule('required')]
     public $selectedManager;
 
     public function mount()
@@ -34,7 +36,10 @@ class DepartmentLivewire extends Component
     public function addDepartment()
     {
         $this->authorize('create', Department::class);
-        $this->validate();
+        $this->validate([
+            'department' => ['required', Rule::unique('departments', 'dep_name')],
+            'selectedManager' => ['required', Rule::unique('departments', 'manager_id')],
+        ]);
 
         $user = Auth::user();
         $roleUser = RoleUser::where('user_id', $user->id)->first();
@@ -45,6 +50,8 @@ class DepartmentLivewire extends Component
             'role_id' => $roleUser?->role_id,
             'manager_id' => $this->selectedManager,
         ]);
+
+        $this->syncDepartmentManager($dept);
 
         AuditLogger::log(
             'department.create',
@@ -63,18 +70,33 @@ class DepartmentLivewire extends Component
         $this->editMode = true;
         $this->editDepartmentId = $departmentId;
         $this->department = $department->dep_name;
+        $this->selectedManager = $department->manager_id ? (string) $department->manager_id : '';
     }
 
     public function updateDepartment()
     {
-        $this->validate(['department' => 'required']);
         $department = Department::findOrFail($this->editDepartmentId);
         $this->authorize('update', $department);
+
+        $this->validate([
+            'department' => [
+                'required',
+                Rule::unique('departments', 'dep_name')->ignore($this->editDepartmentId),
+            ],
+            'selectedManager' => [
+                'required',
+                Rule::unique('departments', 'manager_id')->ignore($this->editDepartmentId),
+            ],
+        ]);
+
+        $oldManagerId = $department->manager_id;
 
         $department->update([
             'dep_name' => $this->department,
             'manager_id' => $this->selectedManager,
         ]);
+
+        $this->syncDepartmentManager($department->fresh(), $oldManagerId);
 
         AuditLogger::log(
             'department.update',
@@ -86,12 +108,14 @@ class DepartmentLivewire extends Component
 
         $this->editMode = false;
         $this->department = '';
+        $this->selectedManager = '';
     }
 
     public function cancelUpdate()
     {
         $this->editMode = false;
         $this->department = '';
+        $this->selectedManager = '';
     }
 
     public function DepartmentDelete(int $deptId)
@@ -114,6 +138,27 @@ class DepartmentLivewire extends Component
         $dept->delete();
 
         return redirect()->route('departments');
+    }
+
+    protected function syncDepartmentManager(Department $department, ?int $previousManagerId = null): void
+    {
+        if ($previousManagerId && (int) $previousManagerId !== (int) $department->manager_id) {
+            DepartmentScopeService::clearUserCache((int) $previousManagerId);
+        }
+
+        if ($department->manager_id) {
+            \App\Models\User::where('id', $department->manager_id)->update([
+                'department_id' => $department->id,
+            ]);
+
+            \App\Models\User::where('department_id', $department->id)
+                ->where('id', '!=', $department->manager_id)
+                ->update(['manager_id' => $department->manager_id]);
+
+            DepartmentScopeService::clearUserCache((int) $department->manager_id);
+        }
+
+        DepartmentScopeService::clearDepartmentCache((int) $department->id);
     }
 
     public function render()

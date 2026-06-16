@@ -10,6 +10,7 @@ use App\Services\AuditLogger;
 use App\Services\DocumentInboxService;
 use App\Services\DocumentSearchService;
 use App\Services\DocumentWorkflowService;
+use App\Services\Ocr\DocumentOcrProcessor;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -90,6 +91,21 @@ class ManageFileLivewire extends Component
         $comment = $action === 'reject' ? __('archive.workflow_reject_from_list') : null;
         $workflow->executeAction($file, $action, Auth::user(), $comment);
         toastr()->success(__('archive.msg_workflow_updated'));
+    }
+
+    public function reprocessOcr(int $fileId, DocumentOcrProcessor $ocr): void
+    {
+        $file = File::findOrFail($fileId);
+        $this->authorize('update', $file);
+
+        if (! $file->supportsOcr()) {
+            toastr()->warning(__('archive.ocr_not_supported'));
+
+            return;
+        }
+
+        $ocr->queue($file, true);
+        toastr()->success(__('archive.ocr_reprocess_queued'));
     }
 
     public function updatingSearchByName()

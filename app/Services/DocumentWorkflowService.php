@@ -11,7 +11,6 @@ use App\Notifications\DocumentRejectedNotification;
 use App\Notifications\DocumentUpdatedNotification;
 use App\Support\ArchiveNotifier;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 class DocumentWorkflowService
@@ -85,7 +84,7 @@ class DocumentWorkflowService
 
     public function isManager(User $user, File $document): bool
     {
-        return $document->folder && (int) $user->id === (int) $document->folder->user_id;
+        return app(DepartmentScopeService::class)->canApproveFile($user, $document);
     }
 
     public function isOwner(User $user, File $document): bool
@@ -225,8 +224,13 @@ class DocumentWorkflowService
             default => Notification::send($owner, new DocumentUpdatedNotification($document)),
         };
 
-        if ($toSlug === 'pending_approval' && $document->folder?->user) {
-            Notification::send($document->folder->user, new DocumentUpdatedNotification($document));
+        if ($toSlug === 'pending_approval') {
+            $managerId = app(DepartmentScopeService::class)->managerIdForFile($document);
+            $manager = $managerId ? User::find($managerId) : null;
+
+            if ($manager) {
+                Notification::send($manager, new DocumentUpdatedNotification($document));
+            }
         }
     }
 

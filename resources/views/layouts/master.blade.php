@@ -8,9 +8,7 @@
     @auth
         <meta name="user-id" content="{{ Auth::id() }}">
         @php
-            $teamManagerId = Auth::user()->hasRole('Manager')
-                ? Auth::id()
-                : Auth::user()->manager_id;
+            $teamManagerId = app(\App\Services\DepartmentScopeService::class)->teamManagerIdFor(Auth::user());
         @endphp
         @if($teamManagerId)
             <meta name="team-manager-id" content="{{ $teamManagerId }}">

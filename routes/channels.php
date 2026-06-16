@@ -22,6 +22,11 @@ Broadcast::channel('team.{managerId}', function ($user, $managerId) {
         return true;
     }
 
-    return (int) $user->id === (int) $managerId
-        || (int) $user->manager_id === (int) $managerId;
+    if ((int) $user->id === (int) $managerId) {
+        return true;
+    }
+
+    $scope = app(\App\Services\DepartmentScopeService::class);
+
+    return $scope->departmentManagerId((int) $user->department_id) === (int) $managerId;
 });

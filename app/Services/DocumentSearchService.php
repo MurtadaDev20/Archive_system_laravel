@@ -46,7 +46,7 @@ class DocumentSearchService
     public function incomingTransferFileIds(User $user): array
     {
         $inbox = app(DocumentInboxService::class);
-        $deptIds = $inbox->departmentIdsFor($user);
+        $deptIds = $inbox->managedDepartmentIds($user);
 
         if (empty($deptIds) && ! $user->hasRole('Admin')) {
             return [];
@@ -78,8 +78,8 @@ class DocumentSearchService
                 return Department::orderBy('dep_name')->get(['id', 'dep_name']);
             }
 
-            $inbox = app(DocumentInboxService::class);
-            $deptIds = $inbox->departmentIdsFor($user);
+            $scope = app(DepartmentScopeService::class);
+            $deptIds = $scope->accessDepartmentIds($user);
 
             if (empty($deptIds)) {
                 return collect();
@@ -137,37 +137,43 @@ class DocumentSearchService
             return;
         }
 
-        $inbox = app(DocumentInboxService::class);
-        $deptIds = $inbox->departmentIdsFor($user);
-        $managerId = $user->manager_id;
+        $scope = app(DepartmentScopeService::class);
+        $accessDeptIds = $scope->accessDepartmentIds($user);
+        $managedDeptIds = $scope->managedDepartmentIds($user);
 
-        $query->where(function ($q) use ($user, $deptIds, $managerId) {
+        $query->where(function ($q) use ($user, $accessDeptIds, $managedDeptIds) {
             $q->where('user_id', $user->id)
-                ->orWhere('owner_id', $user->id)
-                ->orWhereHas('folder', function ($fq) use ($user, $managerId) {
-                    $fq->where('user_id', $user->id);
-                    if ($managerId) {
-                        $fq->orWhere('user_id', $managerId);
-                    }
-                });
+                ->orWhere('owner_id', $user->id);
 
-            if (! empty($deptIds)) {
+            if (! empty($accessDeptIds)) {
+                $q->orWhereIn('dep_id', $accessDeptIds);
+            }
+
+            if (! empty($managedDeptIds)) {
                 $q->orWhereHas('transfers', fn ($tq) => $tq
-                    ->whereIn('to_department_id', $deptIds)
+                    ->whereIn('to_department_id', $managedDeptIds)
                     ->whereIn('status', [DocumentTransfer::STATUS_SENT, DocumentTransfer::STATUS_RECEIVED]));
             }
         });
 
-        if (! empty($filters['inbox']) && $filters['inbox'] === 'transfers' && ! empty($deptIds)) {
+        if (! empty($filters['inbox']) && $filters['inbox'] === 'transfers' && ! empty($managedDeptIds)) {
             $query->whereHas('transfers', fn ($tq) => $tq
-                ->whereIn('to_department_id', $deptIds)
+                ->whereIn('to_department_id', $managedDeptIds)
                 ->whereIn('status', [DocumentTransfer::STATUS_SENT, DocumentTransfer::STATUS_RECEIVED]));
         }
 
-        if (! empty($filters['inbox']) && $filters['inbox'] === 'approvals' && $user->hasRole('Manager')) {
+        if (! empty($filters['inbox']) && $filters['inbox'] === 'approvals') {
             $statusIds = app(DocumentWorkflowService::class)->managerActionStatusIds();
+            $managedIds = $scope->managedDepartmentIds($user);
+
+            if (empty($managedIds)) {
+                $query->whereRaw('1 = 0');
+
+                return;
+            }
+
             $query->whereIn('status_id', $statusIds)
-                ->whereHas('folder', fn ($fq) => $fq->where('user_id', $user->id));
+                ->whereIn('dep_id', $managedIds);
         }
     }
 
@@ -178,17 +184,30 @@ class DocumentSearchService
         }
 
         if (! empty($filters['search'])) {
-            $term = '%'.$filters['search'].'%';
-            $query->where(function ($q) use ($term) {
-                $q->where('file_name', 'like', $term)
-                    ->orWhere('document_number', 'like', $term)
-                    ->orWhere('code', 'like', $term)
-                    ->orWhere('description', 'like', $term)
-                    ->orWhere('ocr_text', 'like', $term)
-                    ->orWhereHas('tags', fn ($tq) => $tq->where('name', 'like', $term))
-                    ->orWhereHas('folder', fn ($fq) => $fq->where('folder_name', 'like', $term))
-                    ->orWhereHas('user', fn ($uq) => $uq->where('name', 'like', $term));
+            $term = trim((string) $filters['search']);
+            $like = '%'.$term.'%';
+
+            $query->where(function ($q) use ($like, $term) {
+                $q->where('file_name', 'like', $like)
+                    ->orWhere('document_number', 'like', $like)
+                    ->orWhere('code', 'like', $like)
+                    ->orWhere('description', 'like', $like)
+                    ->orWhere('ocr_text', 'like', $like)
+                    ->orWhereHas('tags', fn ($tq) => $tq->where('name', 'like', $like))
+                    ->orWhereHas('folder', fn ($fq) => $fq->where('folder_name', 'like', $like))
+                    ->orWhereHas('user', fn ($uq) => $uq->where('name', 'like', $like));
+
+                if ($this->canUseFulltextSearch($term)) {
+                    $q->orWhereRaw(
+                        'MATCH(file_name, description, ocr_text) AGAINST (? IN BOOLEAN MODE)',
+                        [$this->fulltextQuery($term)]
+                    );
+                }
             });
+        }
+
+        if (! empty($filters['ocr_status'])) {
+            $query->where('ocr_status', $filters['ocr_status']);
         }
 
         if (! empty($filters['status_id'])) {
@@ -226,5 +245,21 @@ class DocumentSearchService
         if (! empty($filters['folder_id'])) {
             $query->where('folder_id', $filters['folder_id']);
         }
+    }
+
+    private function canUseFulltextSearch(string $term): bool
+    {
+        return \Illuminate\Support\Facades\DB::getDriverName() === 'mysql'
+            && mb_strlen($term) >= 3;
+    }
+
+    private function fulltextQuery(string $term): string
+    {
+        $parts = preg_split('/\s+/u', $term) ?: [];
+
+        return collect($parts)
+            ->filter(fn ($p) => mb_strlen($p) >= 2)
+            ->map(fn ($p) => '+'.preg_replace('/[^\p{L}\p{N}]/u', '', $p))
+            ->implode(' ');
     }
 }

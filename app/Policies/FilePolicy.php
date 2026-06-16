@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\File;
 use App\Models\Status;
 use App\Models\User;
+use App\Services\DepartmentScopeService;
 use App\Services\DocumentInboxService;
 
 class FilePolicy
@@ -31,12 +32,25 @@ class FilePolicy
 
     public function approve(User $user, File $file): bool
     {
-        return $file->folder && $user->id === $file->folder->user_id;
+        return app(DepartmentScopeService::class)->canApproveFile($user, $file);
     }
 
     public function reject(User $user, File $file): bool
     {
-        return $file->folder && $user->id === $file->folder->user_id;
+        return app(DepartmentScopeService::class)->canApproveFile($user, $file);
+    }
+
+    public function update(User $user, File $file): bool
+    {
+        if ($user->hasRole('Admin')) {
+            return true;
+        }
+
+        if ($user->id === $file->user_id || $user->id === $file->owner_id) {
+            return true;
+        }
+
+        return app(DepartmentScopeService::class)->canApproveFile($user, $file);
     }
 
     private function canAccess(User $user, File $file): bool
@@ -45,16 +59,14 @@ class FilePolicy
             return true;
         }
 
-        if ($user->id === $file->user_id) {
+        if ($user->id === $file->user_id || $user->id === $file->owner_id) {
             return true;
         }
 
-        $folder = $file->folder;
+        $scope = app(DepartmentScopeService::class);
+        $accessIds = $scope->accessDepartmentIds($user);
 
-        if ($folder && (
-            $user->id === $folder->user_id
-            || (int) $user->manager_id === $folder->user_id
-        )) {
+        if ($file->dep_id && in_array((int) $file->dep_id, $accessIds, true)) {
             return true;
         }
 

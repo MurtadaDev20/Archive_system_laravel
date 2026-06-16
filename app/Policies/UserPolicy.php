@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\User;
+use App\Services\DepartmentScopeService;
 
 class UserPolicy
 {
@@ -21,7 +22,11 @@ class UserPolicy
             return true;
         }
 
-        return $user->hasRole('Manager') && (int) $model->manager_id === $user->id;
+        if (! $user->hasRole('Manager') || ! $model->department_id) {
+            return false;
+        }
+
+        return app(DepartmentScopeService::class)->canManageDepartment($user, (int) $model->department_id);
     }
 
     public function delete(User $user, User $model): bool
@@ -31,6 +36,6 @@ class UserPolicy
 
     public function createEmployee(User $user): bool
     {
-        return $user->hasRole('Manager');
+        return ! empty(app(DepartmentScopeService::class)->managedDepartmentIds($user));
     }
 }
